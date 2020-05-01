@@ -6,7 +6,7 @@
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>i h8 dano</title>
 
-        <link href="/css/style.css" rel="stylesheet" type="text/css">
+        <link href="/css/reset.css" rel="stylesheet" type="text/css">
         <link href="/css/style.css" rel="stylesheet" type="text/css">
 
         <script>
@@ -19,10 +19,27 @@
 
     </head>
     <body>
-        <div id="message-container"></div>
-        <form id="send-container">
-            <input type="text" id="message-input">
-            <button type="submit" id="send-button">Send</button>
-        </form>
+        <nav>
+            <ul>
+                <li>
+                    <a href="/">Home</a>
+                </li>
+                <li id="login">
+                    <form action="/logout?_method=DELETE" method="POST">
+                        <button type="submit" id="logout-button">Log Out</button>
+                   </form>
+                </li>
+            </ul>
+        </nav>
+        
+        <canvas id="game-canvas"></canvas>
+
+        <div id="chat-container">
+            <div id="message-container"></div>
+            <form id="send-container">
+                <input type="text" id="message-input">
+                <button type="submit" id="send-button">Send</button>
+            </form>
+        </div>
     </body>
 </html>

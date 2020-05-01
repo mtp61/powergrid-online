@@ -36,4 +36,5 @@ function appendMessage(message) {
     const messageElement = document.createElement('div')
     messageElement.innerText = message
     messageContainer.append(messageElement)
+    messageContainer.scrollTop = messageContainer.scrollHeight
   }
