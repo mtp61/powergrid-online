@@ -39,8 +39,8 @@ class Game {
                     case "!ready":
                         if (!this.gameActive && this.game_state['players'][u] == null && Object.keys(this.game_state['players']).length < 6) {
                             this.game_state['players'][u] = {}
+                            this.serverMessage(u.concat(" joined the game"))
                         }
-                        this.serverMessage(u.concat(" joined the game"))
                         break;
                     case "!start": 
                     // todo change 1 to 3
