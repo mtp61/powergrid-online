@@ -21,3 +21,4 @@ Index
  - delete game if there's no one in it or it's over
 
 
+try to not have duplicated files (resources folder)

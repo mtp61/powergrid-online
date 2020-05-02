@@ -1,4 +1,4 @@
-const map = {
+export const map = {
     1: {"name": "Seattle",
         "x": 1,
         "y": 1,
@@ -36,7 +36,7 @@ const map = {
         "connections": {5: 14, 17: 8, 18: 12, 22: 5}},
 }
 
-const restocks = {3: {1: {"c": 4, "o": 2, "t": 1, "u": 3},
+export const restocks = {3: {1: {"c": 4, "o": 2, "t": 1, "u": 3},
                       2: {"c": 5, "o": 3, "t": 2, "u": 3},
                       3: {"c": 3, "o": 4, "t": 3, "u": 2}}, 
                   4: {1: {"c": 5, "o": 3, "t": 2, "u": 2},
