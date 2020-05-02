@@ -1,0 +1,9 @@
+implemented
+!ready - go from spectate to player
+!start - go from readying to playing game
+
+
+
+future
+!regions - set regions
+

@@ -53,7 +53,7 @@ class GameManager {
     gameConnection(socket, gameName, username) {
         console.log('game', gameName, 'socket connect:', socket.id, username)
         this.games[gameName].newConnection(socket, username)
-        this.games[gameName].message_queue.push({ 'username': 'Server', 'message': username.concat(" connected")})
+        this.games[gameName].serverMessage(username.concat(" connected"))
     }
 
     removeConnection(socket) {
@@ -68,13 +68,14 @@ class GameManager {
         for (let g of Object.keys(this.games)) {
             if (this.games[g].observer_sockets[socket.id] != null) {
                 console.log('game socket disconnect:', socket.id, this.games[g].observer_sockets[socket.id]['username'])
+                // send message
                 this.games[g].message_queue.push({ 'username': "Server", 'message': this.games[g].observer_sockets[socket.id]['username'].concat(" disconnected") })
                 delete this.games[g].observer_sockets[socket.id]
                 return
             }
             if (this.games[g].observer_sockets[socket.id] != null) {
                 console.log('game socket disconnect:', socket.id, this.games[g].player_sockets[socket.id]['username'])
-                // sendmessage
+                // send message
                 this.games[g].message_queue.push({ 'username': "Server", 'message': this.games[g].game_sockets[socket.id]['username'].concat(" disconnected") })
                 delete this.games[g].game_sockets[socket.id]
                 return

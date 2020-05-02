@@ -1,0 +1,23 @@
+big picture
+    represent game state client side
+    handle the game server side
+    data entry
+
+fucked up game css
+game logged in and logged out different pages( do after css fix)
+
+redirect to home page if already in game
+
+only show X chat messages
+
+
+Users
+ - make sure there is not already a user with the same username - i think it already does this?? maybe
+ - add a confirm password
+ - store users in a file (eventually database)
+
+Index
+ - show more info about games in Index
+ - delete game if there's no one in it or it's over
+
+
