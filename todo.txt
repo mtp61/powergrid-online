@@ -1,3 +1,6 @@
+if step 2 stuff doesn't seem to be working, just add more logging
+add logging when doing step 3
+
 big picture
     represent game state client side
     handle the game server side
@@ -28,3 +31,5 @@ try to not have duplicated files (resources folder)
 
 ALTERNATIVE IDEA FOR DRAWING CITIES...
 just the number (or number and name) with three circles under, empty is unbought, colored is the person
+
+add server messages, or better yet personal messages, for bot inputs, don't show it to everyone

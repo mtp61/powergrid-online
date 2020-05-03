@@ -1,9 +1,18 @@
 implemented
+before game
 !ready - go from spectate to player
 !start - go from readying to playing game
 
+in game
+!nominate - nominate plant for bidding
+!bid - bid on current plant, no arg for pass
 
 
 future
+
+
+
+
+
 !regions - set regions
 
