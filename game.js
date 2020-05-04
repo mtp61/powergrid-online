@@ -1,4 +1,7 @@
-
+const plants = require('./resources/plants.js')
+const power_money = require('./resources/power_money.js')
+const map = require('./resources/america.js')
+const restocks = require('./resources/restocks.js')
 
 class Game {
     constructor(gameName) {
@@ -15,7 +18,7 @@ class Game {
         this.game_state = {'players': {}, 'action': []}
 
         this.static_game_info = {"active": false,
-                                "regions": [1]} // todo set regions to be all by default
+                                "regions": [1, 2, 3, 4, 5, 6]}
         
         this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
@@ -163,7 +166,7 @@ class Game {
                                                     // make sure the plant is in the market
                                                     // todo make this work for phase 3 also
                                                     let nomIndex = this.game_state['market'].indexOf(nom)
-                                                    if (nomIndex >= 4) {
+                                                    if (nomIndex >= 4 || nomIndex == -1) {
                                                         break
                                                     }
 
