@@ -16,6 +16,7 @@
 
         <script defer src="http://localhost:3000/socket.io/socket.io.js"></script>
         <script defer src="resources/america.js"></script>
+        <script defer src="resources/game_constants.js"></script>
         <script defer src="game.js"></script>
 
     </head>
@@ -26,9 +27,7 @@
                     <a href="/">Home</a>
                 </li>
                 <li id="login">
-                    <form action="/logout?_method=DELETE" method="POST">
-                        <button type="submit" id="logout-button">Log Out</button>
-                   </form>
+                    <%= username %>
                 </li>
             </ul>
         </nav>

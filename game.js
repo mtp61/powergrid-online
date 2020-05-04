@@ -17,7 +17,7 @@ class Game {
         this.static_game_info = {"active": false,
                                 "regions": [1]} // todo set regions to be all by default
         
-        this.default_colors = ["purple", "blue", "green", "red", "black", "yellow"]
+        this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
         this.plug_plants = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
@@ -62,7 +62,7 @@ class Game {
                                     let player_info = {}
                                     
                                     // color
-                                    let randNum = Math.floor(Math.random() * Object.keys(this.game_state['players']).length)
+                                    let randNum = Math.floor(Math.random() * this.default_colors.length)
                                     player_info['color'] = this.default_colors[randNum]
                                     this.default_colors.splice(randNum, 1) // make sure no one else can get that color
                                     player_info['money'] = 50 // money
@@ -303,12 +303,12 @@ class Game {
                             } else { // someone else needs to bid
                                 let lastBidIndex = this.helpers['canBid'].indexOf(this.helpers['lastBidder'])
                                 if (lastBidIndex + 1 == this.helpers['canBid'].length) {
-                                    nextBidder = this.helpers['canBid'][0]
+                                    let nextBidder = this.helpers['canBid'][0]
                                 } else {
-                                    nextBidder = this.helpers['canBid'][lastBidIndex + 1]
+                                    let nextBidder = this.helpers['canBid'][lastBidIndex + 1]
                                 }
                                 
-                                this.game_state['action'] = [[lastBidIndex , 'bid']]
+                                this.game_state['action'] = [[nextBidder , 'bid']]
                             }
                         }
                         

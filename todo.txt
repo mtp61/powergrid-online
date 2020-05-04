@@ -1,3 +1,9 @@
+ERROR: lets you nominate plants not in market
+subtracting money??
+
+
+need to load in plants and map
+
 if step 2 stuff doesn't seem to be working, just add more logging
 add logging when doing step 3
 
@@ -16,6 +22,7 @@ redirect to home page if already in game
 
 only show X chat messages
 
+add page to top bar with commands
 
 Users
  - make sure there is not already a user with the same username - i think it already does this?? maybe
