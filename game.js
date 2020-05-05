@@ -52,7 +52,7 @@ class Game {
                             }
                             break;
                         case "!start": 
-                        // todo change 1 to 3
+                        // todo change 1 to 3 once testing is done
                             if (!this.gameActive && Object.keys(this.game_state['players']).length >= 1) { // start the game
                                 console.log('game starting:', this.gameName)
 
@@ -147,7 +147,6 @@ class Game {
                                 // setup server helper variables for understanding what the current action is
                                 this.game_state['step'] = 1
                                 this.game_state['phase'] = 1
-                                // TODO
                             }
 
                             this.first_turn = true; // not actually needed, for testing
@@ -222,6 +221,74 @@ class Game {
                                                 this.game_state['action'] = []
                                             }
                                             break;
+                                        case '!buy':
+                                            if (args.length % 2 == 0) { // make sure even args (not inc. first)
+                                                this.serverMessage('bad argument, %2!=1')
+                                                break
+                                            }
+                                            let c = 0, o = 0, t = 0, u = 0 // resource buy amounts
+                                            for (let i = 1; i < args.length; i += 2) {
+                                                let r = args[i] // resource
+                                                let a = parseInt(args[i + 1]) // amount
+                                                if (r != "c" || r != "o" || r != "t" || r != "u") { // bad resource type
+                                                    this.serverMessage('bad resource type')
+                                                    break
+                                                }
+                                                if (isNaN(a)) { // amount not a number
+                                                    this.serverMessage('amount NaN')
+                                                    break
+                                                }
+                                                switch (r) {
+                                                    case 'c':
+                                                        c++
+                                                        break
+                                                    case 'o':
+                                                        o++
+                                                        break
+                                                    case 't':
+                                                        t++
+                                                        break
+                                                    case 'u':
+                                                        u++
+                                                        break
+                                                    default:
+                                                        this.serverMessage('how did u even get here???')
+                                                }
+                                            }
+                                            let cost = this.totalPrice(c, o, t, u)
+                                            if (cost >= 0) {
+                                                if (cost <= this.game_state['players'][username]['money']) { // can afford
+                                                    if (this.canHold(username, c, o, t, u)) { // can hold 
+                                                        // can afford and is not too much and can hold
+                                                        // update market resources
+                                                        this.game_state['resources']['c'] -= c
+                                                        this.game_state['resources']['o'] -= o
+                                                        this.game_state['resources']['t'] -= t
+                                                        this.game_state['resources']['u'] -= u
+                                                        // update player resources
+                                                        this.game_state['players'][username]['resources']['c'] += c
+                                                        this.game_state['players'][username]['resources']['o'] += o
+                                                        this.game_state['players'][username]['resources']['t'] += t
+                                                        this.game_state['players'][username]['resources']['u'] += u
+                                                        // update player money
+                                                        this.game_state['players'][username]['money'] -= cost
+                                                        // reset action
+                                                        this.game_state['action'] = []
+                                                    } else {
+                                                        this.serverMessage('cant hold those resources')
+                                                    }
+                                                } else {
+                                                    this.serverMessage('you')
+                                                }
+                                            } else {
+                                                this.serverMessage('you tried to buy too much of a resource')
+                                            }
+                                            break
+                                        case '!build':
+
+                                            break
+                                        default:
+                                            this.serverMessage('bad command')
                                     }
                                     
                                     //console.log('someone tried to do somethings they are allowed to do!!!')
@@ -291,7 +358,10 @@ class Game {
                                 this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])
                                 
                                 // todo recycle resources if can't store
+                                
 
+                                // update money
+                                this.game_state['players'][this.helpers['lastBidder']]['money'] -= this.helpers['lastBid']
 
                                 // remove them from nominating
                                 let lastBidderIndex = this.helpers['toNominate'].indexOf(this.helpers['lastBidder'])
@@ -305,10 +375,11 @@ class Game {
 
                             } else { // someone else needs to bid
                                 let lastBidIndex = this.helpers['canBid'].indexOf(this.helpers['lastBidder'])
+                                let nextBidder
                                 if (lastBidIndex + 1 == this.helpers['canBid'].length) {
-                                    let nextBidder = this.helpers['canBid'][0]
+                                    nextBidder = this.helpers['canBid'][0]
                                 } else {
-                                    let nextBidder = this.helpers['canBid'][lastBidIndex + 1]
+                                    nextBidder = this.helpers['canBid'][lastBidIndex + 1]
                                 }
                                 
                                 this.game_state['action'] = [[nextBidder , 'bid']]
@@ -321,24 +392,43 @@ class Game {
                 case 3: // buy resources
                     if (this.first_turn) { // redo order on the first turn
                         this.determineOrder()
+                        // need to redo helper
+                        this.setupHelpers3()
                     }
-                    this.game_state['step'] = 1
 
+                    if (this.game_state['action'].length == 0) { // no action
+                        if (this.helpers['toBuy'].length == 0) { // everyone already bought
+                            this.game_state['step'] = 4
+                            this.setupHelpers4()
+                        } else { // next person buys
+                            let nextBuyIndex = this.helpers['toBuy'] - 1
+                            // add to action
+                            this.game_state['action'].push([this.helpers['toBuy'][nextBuyIndex], 'buy'])
 
+                            // remove from helpers
+                            this.helpers.splice(nextBuyIndex, 1)
+                        }
+                    }
+
+                    // can rest if no action
                     break;
                 case 4: // build cities
-                    //this.game_state['step'] = 1
+                    this.game_state['step'] = 1
 
                     break;
                 case 5: // bureaucracy
-                    //this.game_state['step'] = 1
+                    this.game_state['step'] = 1
 
-                    // currently will just auto power all plants
+                    // should first just auto power all plants
+
+
+
+                    // once all players have powered, do this shit (will need to be moved)
+                    this.doBureaucracy()
 
                     if (this.first_turn) {
                         this.first_turn = false
                     }
-
                     break;
             }
         }
@@ -394,7 +484,25 @@ class Game {
     setupHelpers3() {
         this.helpers = {} // reset helpers
 
+        this.helpers['toBuy'] = this.game_state['order']
+    }
 
+    setupHelpers4() {
+        this.helpers = {} // reset helpers
+
+        this.helpers['toBuild'] = this.game_state['order']
+    }
+
+    setupHelpers5() {
+        this.helpers = {} // reset helpers
+
+        this.helpers['toPower'] = this.game_state['order'] // won't actually go in order
+        this.helpers['numPowered'] = {} // number of cities powered
+        this.helpers['plantsPowered'] = {} // plants powered for each user
+        this.helpers['toPower'].forEach(username => { // setup numPowered and plantsPowered
+            this.helpers['numPowered'][username] = 0
+            this.helpers['plantsPowered'][username] = []
+        })
     }
 
     determineOrder() {
@@ -439,6 +547,41 @@ class Game {
 
         this.game_state['market'].push(newPlant) // put at end
         return newPlant
+    }
+
+    totalPrice(c, o, t, u) { // calculate the total price of a resource buy
+        // check if there is enough of the resources
+        if (c > this.game_state['resources']['c'] ||
+            o > this.game_state['resources']['c'] ||
+            t > this.game_state['resources']['c'] ||
+            u > this.game_state['resources']['c']) {
+            return -1
+        }
+
+        // calculate the money 
+        let cost = 0
+        // todo
+
+
+        return cost      
+    }
+
+    canHold(username, c, o, t, u) { // return false if user can't hold res, true ow
+        let plants = this.game_state['players'][username]['plants']
+        let res = this.game_state['players'][username]['resources']
+        // todo 
+
+        return true
+    }
+
+    doBureaucracy() { // do the bureaucracy steps TODO
+        // earn cash
+
+        // spend plant resources
+
+        // resupply res market
+
+        // update plants
     }
 }
 
