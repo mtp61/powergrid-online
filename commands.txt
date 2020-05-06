@@ -10,8 +10,8 @@ in game
 
 future
 needed
-!buy - buy resources
-!build - build cities
+!build - build cities, "1-2" is connection 1 to 2 and "2" is the city 2, order matters, no args is pass
+!power - list of plants to power, no args is power all
 
 extra
 !regions - set regions

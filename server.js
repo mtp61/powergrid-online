@@ -162,9 +162,7 @@ function checkNotAuthenticated(req, res, next) {
 
 // Setup the game
 const GameManager = require('./gameManager')
-const gameManager = new GameManager(1);
-
-//gameManager.newGame(1231, "hio")
+const gameManager = new GameManager(4); // arg is tickrate
 
 function getGames() {
   return gameManager.getGameInfo()

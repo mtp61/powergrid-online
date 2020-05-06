@@ -5,9 +5,6 @@ const restocks = require('./resources/restocks.js')
 
 class Game {
     constructor(gameName) {
-        this.gameActive = false;
-        this.gameFinished = false;
-
         this.gameName = gameName;
 
         this.player_sockets = {}
@@ -15,11 +12,8 @@ class Game {
 
         this.message_queue = []
 
-        this.game_state = {'players': {}, 'action': []}
+        this.game_state = {'players': {}, 'action': [], "regions": [1, 2, 3, 4, 5, 6], "active": false, "finished": false}
 
-        this.static_game_info = {"active": false,
-                                "regions": [1, 2, 3, 4, 5, 6]}
-        
         this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
         this.plug_plants = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
@@ -42,24 +36,22 @@ class Game {
             const m = message['message']
             const u = message['username']
             if (m.slice(0, 1) === "!") { // message is a command
-                if (!this.gameFinished) { // no commands if the game is finished
+                if (!this.game_state['finished']) { // no commands if the game is finished
                     const args = m.split(" ")
                     switch (args[0]) {
                         case "!ready":
-                            if (!this.gameActive && this.game_state['players'][u] == null && Object.keys(this.game_state['players']).length < 6) {
+                            if (!this.game_state['active'] && this.game_state['players'][u] == null && Object.keys(this.game_state['players']).length < 6) {
                                 this.game_state['players'][u] = {}
                                 this.serverMessage(u.concat(" joined the game"))
                             }
                             break;
                         case "!start": 
                         // todo change 1 to 3 once testing is done
-                            if (!this.gameActive && Object.keys(this.game_state['players']).length >= 1) { // start the game
+                            if (!this.game_state['active'] && Object.keys(this.game_state['players']).length >= 1) { // start the game
                                 console.log('game starting:', this.gameName)
 
                                 this.serverMessage("game starting")
-                                this.gameActive = true;
-                                this.game_state['info'] = this.static_game_info
-                                this.game_state['active'] = true
+                                this.game_state['active'] = true;
                                 // setup players
                                 Object.keys(this.game_state['players']).forEach(username => {
                                     let player_info = {}
@@ -71,14 +63,14 @@ class Game {
                                     player_info['money'] = 50 // money
                                     player_info['plants'] = [] // just the plant number
                                     player_info['cities'] = {} // city: 10 15 or 20
-                                    player_info['resources'] = {'coal': 0, 'oil': 0, 'trash': 0, 'uranium': 0} // number of resources
+                                    player_info['resources'] = {'c': 0, 'o': 0, 't': 0, 'u': 0} // number of resources
                                     
                                     // update game_state
                                     this.game_state['players'][username] = player_info 
                                 })
                                 // setup map state in the game
                                 this.game_state['map'] = {}
-                                this.game_state['info']['regions'].forEach(regionNum => {
+                                this.game_state['regions'].forEach(regionNum => {
                                     for (let i = 7 * (regionNum - 1) + 1; i <= regionNum * 7; i++) {
                                         this.game_state['map'][i] = {10: null, 15: null, 20: null}
                                     }
@@ -227,10 +219,11 @@ class Game {
                                                 break
                                             }
                                             let c = 0, o = 0, t = 0, u = 0 // resource buy amounts
+
                                             for (let i = 1; i < args.length; i += 2) {
                                                 let r = args[i] // resource
                                                 let a = parseInt(args[i + 1]) // amount
-                                                if (r != "c" || r != "o" || r != "t" || r != "u") { // bad resource type
+                                                if (r != "c" && r != "o" && r != "t" && r != "u") { // bad resource type
                                                     this.serverMessage('bad resource type')
                                                     break
                                                 }
@@ -240,22 +233,24 @@ class Game {
                                                 }
                                                 switch (r) {
                                                     case 'c':
-                                                        c++
+                                                        c += a
                                                         break
                                                     case 'o':
-                                                        o++
+                                                        o += a
                                                         break
                                                     case 't':
-                                                        t++
+                                                        t += a
                                                         break
                                                     case 'u':
-                                                        u++
+                                                        u += a
                                                         break
                                                     default:
                                                         this.serverMessage('how did u even get here???')
                                                 }
                                             }
+                                                                                        
                                             let cost = this.totalPrice(c, o, t, u)
+
                                             if (cost >= 0) {
                                                 if (cost <= this.game_state['players'][username]['money']) { // can afford
                                                     if (this.canHold(username, c, o, t, u)) { // can hold 
@@ -285,7 +280,109 @@ class Game {
                                             }
                                             break
                                         case '!build':
+                                            // check args
+                                            // make city list
+                                            let cities = []
+                                            this.game_state['regions'].forEach(region => {
+                                                for (let i = 1; i <= 7; i++) { // loop thru cities in region
+                                                    cities.push((region - 1) * 7 + i)
+                                                }
+                                            })
+                                            let badArg = false
+                                            args.slice(1).forEach(arg => {
+                                                // arg options
+                                                arg = arg.split('-')
+                                                if (arg.length == 1) { // city
+                                                    if (isNaN(arg[0])) {
+                                                        badArg = true
+                                                    } else {
+                                                        if (!cities.includes(parseInt(arg[0]))) { // city isnt in map
+                                                            badArg = true
+                                                        }
+                                                    }                                                
+                                                } else if (arg.length == 2) { // connection
+                                                    if (isNaN(arg[0])) {
+                                                        badArg = true
+                                                    } else {
+                                                        if (!cities.includes(parseInt(arg[0]))) { // first city isnt in map
+                                                            badArg = true
+                                                        }
+                                                    }
+                                                    if (isNaN(arg[1])) {
+                                                        badArg = true
+                                                    } else {
+                                                        if (!cities.includes(parseInt(arg[1]))) { // second city isnt in map
+                                                            badArg = true
+                                                        }
+                                                    }
+                                                } else {
+                                                    badArg = true
+                                                }
+                                            })
+                                            if (badArg) {
+                                                this.serverMessage(username.concat(" - bad build args"))
+                                                break
+                                            }  
 
+                                            // check if build works and can afford
+                                            let buildCost = this.buildCost(username, args.slice(1))
+                                            if (buildCost >= 0) { // build possibe
+                                                if (buildCost <= this.game_state['players'][username]['money']) {// can afford
+                                                
+                                                } else {
+                                                    this.serverMessage(username.concat(" - cant afford build"))
+                                                    break
+                                                }
+                                            } else {
+                                                this.serverMessage(username.concat(" - build not possible"))
+                                                break
+                                            }
+
+                                            // execute build
+                                            args.slice(1).forEach(arg => {
+                                                if (arg.split('-').length == 1) { // is a city
+                                                    // update map, players cities
+                                                    let mapCity = this.game_state['map'][toString(arg)]
+
+                                                    if (mapCity[10] == null) { // 10 open
+                                                        this.game_state['map'][arg][10] = username
+                                                        this.game_state['players'][username]['cities'][arg] = 10
+                                                    } else if (mapCity[15] == null) { // 15 open
+                                                        this.game_state['map'][arg][15] = username
+                                                        this.game_state['players'][username]['cities'][arg] = 15
+                                                    } else { // only 20 open
+                                                        this.game_state['map'][arg][20] = username
+                                                        this.game_state['players'][username]['cities'][arg] = 20
+                                                    }
+                                                }
+                                            })
+
+                                            // subtract money
+                                            this.game_state['players'][username]['money'] -= buildCost
+
+                                            // reset action
+                                            this.game_state['action'] = []
+
+                                            break
+                                        case '!power':
+                                            // probs want to restructure this
+
+                                            // check args
+                                            if (args.length == 1) { // power all
+
+                                                
+
+                                                
+                                            } else {
+                                                // check if have plants
+
+                                                // check if have enough resources
+
+                                                // power
+                                            }                                            
+
+                                            // reset action - need to be careful on this one
+                                            
                                             break
                                         default:
                                             this.serverMessage('bad command')
@@ -311,7 +408,7 @@ class Game {
         this.message_queue = [] // reset queue
 
         // if game active...
-        if (this.gameActive) {
+        if (this.game_state['active']) {
             switch (this.game_state['step']) {
                 case 1: // determine order
                     if (this.first_turn) {
@@ -332,7 +429,7 @@ class Game {
                         this.determineOrder()
                     }
                     
-                    this.serverMessage("new order - ".concat(JSON.stringify(this.game_state['order'])))
+                    this.serverMessage("step 1 done - new order - ".concat(JSON.stringify(this.game_state['order'])))
                     this.log("reordered players")
 
                     // setup for later
@@ -346,7 +443,7 @@ class Game {
                         if (this.helpers['currentPlant'] == -1) { // no plant
                             if (this.helpers['toNominate'].length == 0) { // no one can nominate
                                 this.log("plants done")
-                                this.serverMessage("plants done")
+                                this.serverMessage("step 2 done")
                                 this.game_state['step'] = 3
                                 this.setupHelpers3()
                             } else { // someone can nominate a plant
@@ -390,36 +487,54 @@ class Game {
 
                     break;
                 case 3: // buy resources
-                    if (this.first_turn) { // redo order on the first turn
+                    if (this.first_turn && !this.first_turn_updated) { // redo order on the first turn
                         this.determineOrder()
                         // need to redo helper
                         this.setupHelpers3()
+                        // reset this so we don't hit this loop every time
+                        this.first_turn_updated = true
                     }
-
+                    
                     if (this.game_state['action'].length == 0) { // no action
                         if (this.helpers['toBuy'].length == 0) { // everyone already bought
+                            this.serverMessage('step 3 done')
                             this.game_state['step'] = 4
                             this.setupHelpers4()
                         } else { // next person buys
-                            let nextBuyIndex = this.helpers['toBuy'] - 1
+                            let nextBuyIndex = this.helpers['toBuy'].length - 1
                             // add to action
                             this.game_state['action'].push([this.helpers['toBuy'][nextBuyIndex], 'buy'])
 
                             // remove from helpers
-                            this.helpers.splice(nextBuyIndex, 1)
+                            this.helpers['toBuy'].splice(nextBuyIndex, 1)
                         }
                     }
 
                     // can rest if no action
+
                     break;
                 case 4: // build cities
-                    this.game_state['step'] = 1
+                    if (this.game_state['action'].length == 0) { // no action
+                        if (this.helpers['toBuild'].length == 0) { // everyone already built
+                            this.serverMessage('step 4 done')
+                            this.game_state['step'] = 5
+                            this.setupHelpers5()
+                        } else { // next person builds
+                            let nextBuildIndex = this.helpers['toBuild'].length - 1
+                            // add to action
+                            this.game_state['action'].push([this.helpers['toBuild'][nextBuildIndex], 'build'])
+
+                            // remove from helpers
+                            this.helpers['toBuild'].splice(nextBuildIndex, 1)
+                        }
+                    }
+                    // can rest if no action
 
                     break;
                 case 5: // bureaucracy
                     this.game_state['step'] = 1
 
-                    // should first just auto power all plants
+                    // check if action
 
 
 
@@ -429,6 +544,7 @@ class Game {
                     if (this.first_turn) {
                         this.first_turn = false
                     }
+
                     break;
             }
         }
@@ -445,7 +561,7 @@ class Game {
     }
 
     newConnection(socket, username) {
-        if (this.gameActive && this.game_state['players'][username] != null) {
+        if (this.game_state['active'] && this.game_state['players'][username] != null) {
             this.player_sockets[socket.id] = { 'socket': socket, 'username': username }
         } else {
             this.observer_sockets[socket.id] = { 'socket': socket, 'username': username }
@@ -474,7 +590,7 @@ class Game {
     setupHelpers2() {
         this.helpers = {} // reset helpers
 
-        this.helpers['toNominate'] = this.game_state['order'] // nominate in order
+        this.helpers['toNominate'] = [...this.game_state['order']] // nominate in order
         this.helpers['currentPlant'] = -1 
         this.helpers['canBid'] = []
         this.helpers['lastBid'] = -1
@@ -484,19 +600,19 @@ class Game {
     setupHelpers3() {
         this.helpers = {} // reset helpers
 
-        this.helpers['toBuy'] = this.game_state['order']
+        this.helpers['toBuy'] = [...this.game_state['order']]
     }
 
     setupHelpers4() {
         this.helpers = {} // reset helpers
 
-        this.helpers['toBuild'] = this.game_state['order']
+        this.helpers['toBuild'] = [...this.game_state['order']]
     }
 
     setupHelpers5() {
         this.helpers = {} // reset helpers
 
-        this.helpers['toPower'] = this.game_state['order'] // won't actually go in order
+        this.helpers['toPower'] = [...this.game_state['order']] // won't actually go in order
         this.helpers['numPowered'] = {} // number of cities powered
         this.helpers['plantsPowered'] = {} // plants powered for each user
         this.helpers['toPower'].forEach(username => { // setup numPowered and plantsPowered
@@ -516,7 +632,7 @@ class Game {
         })
         // sort
         while (Object.keys(playerScores).length > 0) {
-            let top_score = -1, top_username = ""
+            let top_score = -1, top_username
             Object.keys(playerScores).forEach(username => {
                 if (playerScores[username] > top_score) {
                     top_score = playerScores[username]
@@ -526,7 +642,7 @@ class Game {
 
             // put next in order
             this.game_state['order'].push(top_username)
-            delete playerScores[username]
+            delete playerScores[top_username]
         }
     }
 
@@ -547,41 +663,272 @@ class Game {
 
         this.game_state['market'].push(newPlant) // put at end
         return newPlant
+
+        // todo deck shit
     }
 
     totalPrice(c, o, t, u) { // calculate the total price of a resource buy
         // check if there is enough of the resources
         if (c > this.game_state['resources']['c'] ||
-            o > this.game_state['resources']['c'] ||
-            t > this.game_state['resources']['c'] ||
-            u > this.game_state['resources']['c']) {
+            o > this.game_state['resources']['o'] ||
+            t > this.game_state['resources']['t'] ||
+            u > this.game_state['resources']['u']) {
             return -1
         }
 
         // calculate the money 
         let cost = 0
-        // todo
+        
+        // c o t
+        for (let i = 0; i < c; i++) { // buy c coals
+            cost += 8 - Math.floor((this.game_state['resources']['c'] - 1) / 3)
+            this.game_state['resources']['c']--
+        }
+        for (let i = 0; i < o; i++) { // buy o oil
+            cost += 8 - Math.floor((this.game_state['resources']['o'] - 1) / 3)
+            this.game_state['resources']['o']--
+        }
+        for (let i = 0; i < t; i++) { // buy t trash
+            cost += 8 - Math.floor((this.game_state['resources']['t'] - 1) / 3)
+            this.game_state['resources']['t']--
+        }
 
+        // u
+        for (let i = 0; i < u; i++) {
+            switch (this.game_state['resources']['u']) { // ammt of u in market
+                case 1:
+                    cost += 16
+                    break
+                case 2:
+                    cost += 14
+                    break
+                case 3:
+                    cost += 12
+                    break
+                case 4:
+                    cost += 10
+                    break
+                default:
+                    cost += 13 - this.game_state['resources']['u']
+            }
+
+            this.game_state['resources']['u']--
+        }
 
         return cost      
     }
 
     canHold(username, c, o, t, u) { // return false if user can't hold res, true ow
-        let plants = this.game_state['players'][username]['plants']
+        let playerPlants = this.game_state['players'][username]['plants']
         let res = this.game_state['players'][username]['resources']
-        // todo 
+
+        // add on player resources
+        c += res['c']
+        o += res['o']
+        t += res['t']
+        u += res['u']
+        let h = c + o
+
+        let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
+        playerPlants.forEach(plantNum => {
+            let plantType = plants[plantNum]['type']
+            if (plantType != 'r') { // not renewable
+                capacity[plantType] += 2 * plants[plantNum]['in']
+            }
+        })
+
+        // check trash and uranium
+        if (capacity['t'] < t || capacity['u'] < u) {
+            this.serverMessage('you cant store all of those damn resourceis')
+            return false
+        }
+
+        // check coal and oil
+        if (c > capacity['c'] || o > capacity['o']) { // c or o over cap
+            if (c + h > capacity['c'] + capacity['h'] || o + h > capacity['o'] + capacity['h'] || c + o + h > capacity['c'] + capacity['o'] + capacity['h']) {
+                this.serverMessage('you cant store all of those damn resourceis')
+                return false
+            }
+        }
 
         return true
     }
 
     doBureaucracy() { // do the bureaucracy steps TODO
         // earn cash
+        Object.keys(this.game_state['players']).forEach(username => {
+            // add cash for the username based on number of plants
+            this.game_state['players'][username]['money'] += power_money[this.helpers['numPowered'][username]]
 
-        // spend plant resources
+            let hPlants = []
+            // spend plant resources
+            this.helpers['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant
+                switch (plants[plantNum]['type']) {
+                    case 'c':
+                        this.game_state['players'][username]['resources']['c'] -= plants[plantNum]['in']
+                        break
+                    case 'o':
+                        this.game_state['players'][username]['resources']['o'] -= plants[plantNum]['in']
+                        break
+                    case 't':
+                        this.game_state['players'][username]['resources']['t'] -= plants[plantNum]['in']
+                        break
+                    case 'u':
+                        this.game_state['players'][username]['resources']['u'] -= plants[plantNum]['in']
+                        break
+                    case 'r':
+                        // don't need to do anything for renewable
+                        break
+                    case 'h':
+                        hPlants.push(plantNum)
+                        break
+                    default:
+                        this.serverMessage("shouldn't be here db")
+                }
+            })
+
+            // deal with hybrids 
+            hPlants.forEach(plantNum => { // prioritizes burning coal
+                let playerC = this.game_state['players'][username]['resources']['c']
+                let plantIn = plants[plantNum]['in']
+                if (plantIn <= playerC) { // can power off of coal
+                    this.game_state['players'][username]['resources']['c'] -= plantIn
+                } else {
+                    // coal to zero, subtract remaining oil needed
+                    this.game_state['players'][username]['resources']['c'] = 0
+                    this.game_state['players'][username]['resources']['o'] -= plantIn - playerC
+                }
+            })
+        })
 
         // resupply res market
-
+        this.restockResources()
+        
         // update plants
+        if (this.game_state['phase'] == 3) {
+            this.drawPlant(this.game_state['market'][this.game_state['market'].length - 1])
+        } else { // phase 1 or 2
+            this.drawPlant(this.game_state['market'][0])
+        }
+    }
+
+    buildCost (username, args) { // return cost if possible, -1 if not, don't worry about money
+        let buildCost = 0
+        let canBuild = true
+
+        let boughtCities = [...Object.keys(this.game_state['players'][username]['cities'])] // temp var to store bought cities
+        let canBuyCities = [] // temp var, includes cities connected to
+
+        let noCities = false
+        if (boughtCities.length == 0) {
+            noCities = true
+        } 
+
+        // go thru vars
+        args.forEach(arg => {
+            arg = arg.split('-')
+            if (arg.length == 1) { // city
+                let city = arg[0]
+
+                if (noCities) { // havent built any cities
+                    // find lowest cost
+                    if (this.game_state['map'][city][10] == null) { // can build 10
+                        buildCost += 10
+                        boughtCities.push(city)
+                    } else if (this.game_state['map'][city][15] == null && this.game_state['phase'] >= 2) { // can build 15
+                        buildCost += 15
+                        boughtCities.push(city)
+                    } else if (this.game_state['map'][city][20] == null && this.game_state['phase'] == 3) { // can build 20
+                        buildCost += 20
+                        boughtCities.push(city)
+                    } else { // city full
+                        canBuild = false
+                        this.log('city full, has not built first')
+                    }
+
+                    noCities = false // now has build a ity
+                } else if (canBuyCities.includes(city)) { // has build cities, can go to city
+                    // remove from canbuycities
+                    canBuyCities.splice(canBuyCities.indexOf(city), 1)
+                    // find lowest cost
+                    if (this.game_state['map'][city][10] == null) { // can build 10
+                        buildCost += 10
+                        boughtCities.push(city)
+                    } else if (this.game_state['map'][city][15] == null && this.game_state['phase'] >= 2) { // can build 15
+                        buildCost += 15
+                        boughtCities.push(city)
+                    } else if (this.game_state['map'][city][20] == null && this.game_state['phase'] == 3) { // can build 20
+                        buildCost += 20
+                        boughtCities.push(city)
+                    } else { // city full
+                        canBuild = false
+                        this.log('city full, has built first')
+                    }
+                } else {
+                    canBuild = false
+                }
+            } else if (arg.length == 2) { // connection
+                let city1 = arg[0], city2 = arg[1]
+                let bCity1 = boughtCities.includes(city1) || canBuyCities.includes(city1)
+                let bCity2 = boughtCities.includes(city2) || canBuyCities.includes(city2)
+                if (bCity1 && bCity2) { // own both ends of the connection
+                    canBuild = false
+                } if (bCity1) { // own city1
+                    let connectionCost = map[city1]['connections'][city2]
+                    if (!isNaN(connectionCost)) { // cities connected
+                        buildCost += connectionCost // add cost
+                        canBuyCities.push(city2) // add to canBuyCities
+                    } else {
+                        canBuild = false
+                    }
+                } if (bCity2) { // own city2
+                    let connectionCost = map[city2]['connections'][city1]
+                    if (!isNaN(connectionCost)) { // cities connected
+                        buildCost += connectionCost // add cost
+                        canBuyCities.push(city1) // add to canBuyCities
+                    } else {
+                        canBuild = false
+                    }
+                } else { // own neither end of the connection
+                    canBuild = false
+                }
+            } else {
+                this.serverMessage('shouldnt get here buildcost')
+            }
+        })
+
+        if (canBuild) {
+            return buildCost
+        } else {
+            return -1
+        }
+    }
+
+    restockResources() { // restock resource market
+        let numPlayers = Object.keys(this.game_state['players']).length
+        if (numPlayers < 3) {
+            numPlayers = 3
+        }
+
+        // increase resource amounts
+        this.game_state['resources']['c'] += restocks[numPlayers][this.game_state['phase']]['c']
+        this.game_state['resources']['o'] += restocks[numPlayers][this.game_state['phase']]['o']
+        this.game_state['resources']['t'] += restocks[numPlayers][this.game_state['phase']]['t']
+        this.game_state['resources']['u'] += restocks[numPlayers][this.game_state['phase']]['u']
+    
+        // make sure not too much
+        if (this.game_state['resources']['c'] > 24) {
+            this.game_state['resources']['c'] = 24
+        }
+        if (this.game_state['resources']['o'] > 24) {
+            this.game_state['resources']['o'] = 24
+        }
+        if (this.game_state['resources']['t'] > 24) {
+            this.game_state['resources']['t'] = 24
+        }
+        if (this.game_state['resources']['u'] > 12) {
+            this.game_state['resources']['u'] = 12
+        }
     }
 }
 

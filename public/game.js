@@ -72,7 +72,7 @@ function render(game_state) {
     if (game_state['active']) {
         if (!map_setup) {
             map_setup = true
-            setupMap(game_state['info'])
+            setupMap(game_state['regions'])
         }
 
         // draw different aspects
@@ -306,10 +306,9 @@ function drawAction(x_offset, y_offset, width, height, game_state) {
     ctx.stroke(); */
 }
 
-function setupMap(game_info) {
+function setupMap(regions) {
     // setup map
     // remove cities in wrong regions
-    let regions = game_info["regions"]
     Object.keys(map).forEach(city => {
         if (!regions.includes(map[city]["region"])) {
             delete map[city]
