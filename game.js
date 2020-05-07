@@ -2,6 +2,8 @@ const plants = require('./resources/plants.js')
 const power_money = require('./resources/power_money.js')
 const map = require('./resources/america.js')
 const restocks = require('./resources/restocks.js')
+const win_cities = require('./resources/win_cities.js')
+const phase2_cities = require('./resources/phase2_cities.js')
 
 class Game {
     constructor(gameName) {
@@ -12,13 +14,17 @@ class Game {
 
         this.message_queue = []
 
-        this.game_state = {'players': {}, 'action': [], "regions": [1, 2, 3, 4, 5, 6], "active": false, "finished": false}
+        this.game_state = {'players': {}, 
+                           'action': [], 
+                           "regions": [1, 2, 3, 4, 5, 6], 
+                           "active": false, 
+                           "finished": false}
 
         this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
         this.plug_plants = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
-
+             
         this.plant_deck = []
         
         this.first_turn = true
@@ -125,7 +131,7 @@ class Game {
                                 this.game_state['market'].sort((a,b) => a-b)
                                 
                                 // make deck
-                                this.plant_deck.push(-1) // -1 represents the phase 3 card
+                                this.plant_deck.push(333) // 333 represents the phase 3 card
                                 while (shuffle_socket_plants.length > 0) {
                                     this.plant_deck.push(shuffle_socket_plants.pop())
                                 }
@@ -155,10 +161,17 @@ class Game {
                                                 let nom = parseInt(args[1])
                                                 if (!isNaN(nom)) { // make sure is int
                                                     // make sure the plant is in the market
-                                                    // todo make this work for phase 3 also
                                                     let nomIndex = this.game_state['market'].indexOf(nom)
-                                                    if (nomIndex >= 4 || nomIndex == -1) {
-                                                        break
+                                                    if (this.game_state['phase'] != 3) { // not phase 3
+                                                        if (nomIndex >= 4 || nomIndex == -1) {
+                                                            this.serverMessage('cant nominate that plant')
+                                                            break
+                                                        }
+                                                    } else { // phase 3
+                                                        if (nomIndex >= this.game_state['market'].length || nomIndex == -1) {
+                                                            this.serverMessage('cant nominate that plant')
+                                                            break
+                                                        }
                                                     }
 
                                                     // make sure have enough money
@@ -389,8 +402,9 @@ class Game {
 
                                             // check args
                                             let error = false
-                                            if (args.length == 1) { // power all
-                                                toPower = [...this.game_state['players'][username]['plants']]
+                                            if (args.length == 1) { // power as many as possible TODO
+                                                //toPower = [...this.game_state['players'][username]['plants']]
+                                                toPower = []
                                             } else {
                                                 args.slice(1).forEach(plantNum => {
                                                     if (!isNaN(plantNum)) { // is number
@@ -521,6 +535,7 @@ class Game {
                                 this.serverMessage("step 2 done")
                                 this.game_state['step'] = 3
                                 this.setupHelpers3()
+                                this.checkPhase3()
                             } else { // someone can nominate a plant
                                 this.game_state['action'] = [[this.helpers['toNominate'][0], 'nominate']]
                             }
@@ -540,7 +555,7 @@ class Game {
                                 this.helpers['toNominate'].splice(lastBidderIndex, 1)
 
                                 // remove plant, draw a new one
-                                this.drawPlant(this.helpers['currentPlant'])
+                                this.drawPlant(this.helpers['currentPlant'], false)
 
                                 // reset helpers
                                 this.helpers['currentPlant'] = -1
@@ -619,8 +634,7 @@ class Game {
                             })
                         }
                     } 
-                    // rest while action exists                    
-
+                    // rest while action exists
                     break;
             }
         }
@@ -727,25 +741,30 @@ class Game {
         }
     }
 
-    drawPlant( toRemoveNumber ) {
-        let newPlant = this.plant_deck.pop()
-       
+    drawPlant( toRemoveNumber, recycle ) {
+        // deck shit - if is a recycle need to add to end of deck
+        if (recycle) {
+            this.plant_deck.splice(0, 0, toRemoveNumber)
+        }
+
         // remove from plants
         let toRemoveIndex = this.game_state['market'].indexOf(toRemoveNumber)
         this.game_state['market'].splice(toRemoveIndex, 1)
-        
-        // insert into plants, mainting sort
-        for (let i = 0; i < this.game_state['market'].length; i++) {
-            if (newPlant < this.game_state['market'][i]) {
-                this.game_state['market'].splice(i, 0, newPlant)
-                return newPlant
+
+        if (this.plant_deck.length != 0) {
+            let newPlant = this.plant_deck.pop()    
+            
+            // insert into plants, mainting sort
+            for (let i = 0; i < this.game_state['market'].length; i++) {
+                if (newPlant < this.game_state['market'][i]) {
+                    this.game_state['market'].splice(i, 0, newPlant)
+                    return newPlant
+                }
             }
-        }
 
-        this.game_state['market'].push(newPlant) // put at end
-        return newPlant
-
-        // todo deck shit
+            this.game_state['market'].push(newPlant) // put at end
+            return newPlant
+        }  
     }
 
     totalPrice(c, o, t, u) { // calculate the total price of a resource buy
@@ -835,62 +854,144 @@ class Game {
         return true
     }
 
-    doBureaucracy() { // do the bureaucracy steps TODO
-        // earn cash
+    doBureaucracy() { // do the bureaucracy steps 
+        // check end game conditions
+        let numPlayers = Object.keys(this.game_state['players']).length
+        if (numPlayers < 3) { numPlayers = 3 }
+        let winCities = win_cities[numPlayers]
         Object.keys(this.game_state['players']).forEach(username => {
-            // add cash for the username based on number of plants
-            this.game_state['players'][username]['money'] += power_money[this.helpers['numPowered'][username]]
-
-            let hPlants = []
-            // spend plant resources
-            this.helpers['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant
-                switch (plants[plantNum]['type']) {
-                    case 'c':
-                        this.game_state['players'][username]['resources']['c'] -= plants[plantNum]['in']
-                        break
-                    case 'o':
-                        this.game_state['players'][username]['resources']['o'] -= plants[plantNum]['in']
-                        break
-                    case 't':
-                        this.game_state['players'][username]['resources']['t'] -= plants[plantNum]['in']
-                        break
-                    case 'u':
-                        this.game_state['players'][username]['resources']['u'] -= plants[plantNum]['in']
-                        break
-                    case 'r':
-                        // don't need to do anything for renewable
-                        break
-                    case 'h':
-                        hPlants.push(plantNum)
-                        break
-                    default:
-                        this.serverMessage("shouldn't be here db")
-                }
-            })
-
-            // deal with hybrids 
-            hPlants.forEach(plantNum => { // prioritizes burning coal
-                let playerC = this.game_state['players'][username]['resources']['c']
-                let plantIn = plants[plantNum]['in']
-                if (plantIn <= playerC) { // can power off of coal
-                    this.game_state['players'][username]['resources']['c'] -= plantIn
-                } else {
-                    // coal to zero, subtract remaining oil needed
-                    this.game_state['players'][username]['resources']['c'] = 0
-                    this.game_state['players'][username]['resources']['o'] -= plantIn - playerC
-                }
-            })
+            let numCities = Object.keys(this.game_state['players'][username]['cities']).length
+            if (numCities >= winCities) { // someone has hit win cities
+                this.game_state['active'] = false
+                this.game_state['finished'] = true
+            }
         })
 
-        // resupply res market
-        this.restockResources()
+        if (this.game_state['finished']) { // if game over 
+            // determine winner
+            let win_username = ""
+            let win_score = -1
+            Object.keys(this.game_state['players']).forEach(username => {
+                let numPowered = this.helpers['numPowered'][username]
+                let money = this.game_state['players'][username]['money']
+                let playerScore = numPowered * 1000 + money
+                if (playerScore > win_score) {
+                    win_score = playerScore
+                    win_username = username
+                }
+            })
+
+            this.serverMessage(win_username.concat(' won the game'))
+        } else { // do normal bur
+            // check phase 2
+            if (this.game_state['phase'] == 1) { // if phase 1
+                let phase2Cities = phase2_cities[numPlayers] // numplayers should already be defined
+
+                Object.keys(this.game_state['players']).forEach(username => {
+                    let playerCities = Object.keys(this.game_state['players']).length
+                    if (playerCities >= phase2Cities) { // it is phase 2
+                        this.game_state['phase'] = 2
+                    }
+                })
+
+                if (this.game_state['phase'] == 2) { // do the start of phase 2 things
+                    this.serverMessage('phase 2')
+
+                    // remove lowest plant
+                    this.drawPlant(this.game_state['market'][this.game_state['market'].length - 1], true)
+                }
+            }
+
+            // earn cash
+            Object.keys(this.game_state['players']).forEach(username => {
+                // add cash for the username based on number of plants
+                this.game_state['players'][username]['money'] += power_money[this.helpers['numPowered'][username]]
+
+                let hPlants = []
+                // spend plant resources
+                this.helpers['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant
+                    switch (plants[plantNum]['type']) {
+                        case 'c':
+                            this.game_state['players'][username]['resources']['c'] -= plants[plantNum]['in']
+                            break
+                        case 'o':
+                            this.game_state['players'][username]['resources']['o'] -= plants[plantNum]['in']
+                            break
+                        case 't':
+                            this.game_state['players'][username]['resources']['t'] -= plants[plantNum]['in']
+                            break
+                        case 'u':
+                            this.game_state['players'][username]['resources']['u'] -= plants[plantNum]['in']
+                            break
+                        case 'r':
+                            // don't need to do anything for renewable
+                            break
+                        case 'h':
+                            hPlants.push(plantNum)
+                            break
+                        default:
+                            this.serverMessage("shouldn't be here db")
+                    }
+                })
+
+                // deal with hybrids 
+                hPlants.forEach(plantNum => { // prioritizes burning coal
+                    let playerC = this.game_state['players'][username]['resources']['c']
+                    let plantIn = plants[plantNum]['in']
+                    if (plantIn <= playerC) { // can power off of coal
+                        this.game_state['players'][username]['resources']['c'] -= plantIn
+                    } else {
+                        // coal to zero, subtract remaining oil needed
+                        this.game_state['players'][username]['resources']['c'] = 0
+                        this.game_state['players'][username]['resources']['o'] -= plantIn - playerC
+                    }
+                })
+            })
+
+            // resupply res market
+            this.restockResources()
         
-        // update plants
-        if (this.game_state['phase'] == 3) {
-            this.drawPlant(this.game_state['market'][this.game_state['market'].length - 1])
-        } else { // phase 1 or 2
-            this.drawPlant(this.game_state['market'][0])
+            // update plants
+            if (this.game_state['phase'] == 3) {
+                this.drawPlant(this.game_state['market'][0], false)
+            } else { // phase 1 or 2
+                this.drawPlant(this.game_state['market'][this.game_state['market'].length - 1], true)
+            }
+
+            // check for phase 3
+            this.checkPhase3()
         }
+    }
+
+    checkPhase3() { // check for phase 3 and do the required changes
+        // check if not phase 3
+        if (this.game_state['phase'] != 3) {
+            // check if phase 3 card is out
+            if (this.game_state['market'][this.game_state['market'].length - 1] == 333) {
+                this.serverMessage('phase 3')
+                
+                // start phase 3
+                this.game_state['phase'] = 3
+
+                // remove phase 3 card
+                this.game_state['market'].splice(this.game_state['market'].length - 1, 1)
+
+                // remove lowest plant
+                this.game_state['market'].splice(0, 1)
+
+                // shuffle deck
+                let deckLen = this.plant_deck.length
+                let new_deck = [], randIndex, newDeckLen
+                for (let i = 0; i < deckLen; i++) {
+                    newDeckLen = new_deck.length
+                    randIndex = Math.floor(Math.random() * newDeckLen)
+                    new_deck.splice(randIndex, 0, this.plant_deck.pop())
+                }
+                this.plant_deck = [...new_deck]
+
+            }
+        }
+        // do nothing if already phase 3
     }
 
     buildCost (username, args) { // return cost if possible, -1 if not, don't worry about money

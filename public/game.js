@@ -69,7 +69,7 @@ function render(game_state) {
     const width = canvas.width
     const height = canvas.height
     
-    if (game_state['active']) {
+    if (game_state['active'] || game_state['finished']) {
         if (!map_setup) {
             map_setup = true
             setupMap(game_state['regions'])
@@ -226,28 +226,32 @@ function drawPlants(x_offset, y_offset, width, height, game_state) {
 
     let plantIndex = 2
     game_state['market'].forEach(plantNum => {
-        // color
-        switch (plants[plantNum]['type']) {
-            case 'c':
-                ctx.fillStyle = "brown"
-                break
-            case 'o':
-                ctx.fillStyle = "black"
-                break
-            case 't':
-                ctx.fillStyle = "orange"
-                break
-            case 'u':
-                ctx.fillStyle = "red"
-                break
-            case 'h':
-                ctx.fillStyle = "black"
-                break
-            case 'r':
-                ctx.fillStyle = "green"
-                break
-            default:
-                ctx.fillStyle = "black"
+        if (plantNum == 333) {// phase 3 card 
+            ctx.fillStyle = "black"
+        } else { // not phase 3 card
+            // color
+            switch (plants[plantNum]['type']) {
+                case 'c':
+                    ctx.fillStyle = "brown"
+                    break
+                case 'o':
+                    ctx.fillStyle = "black"
+                    break
+                case 't':
+                    ctx.fillStyle = "orange"
+                    break
+                case 'u':
+                    ctx.fillStyle = "red"
+                    break
+                case 'h':
+                    ctx.fillStyle = "black"
+                    break
+                case 'r':
+                    ctx.fillStyle = "green"
+                    break
+                default:
+                    ctx.fillStyle = "black"
+            }
         }
 
         // draw the text
@@ -332,8 +336,12 @@ function setupMap(regions) {
 }
 
 function plantToString(plantNum) {
-    let plantInfo = plants[plantNum]
-    return plantNum.toString().concat(": ", plantInfo['in'].toString(), " ", plantInfo['type'], " => ", plantInfo['out'].toString())
+    if (plantNum == 333) { // phase 3 card
+        return "333"
+    } else { // not phase 3 card
+        let plantInfo = plants[plantNum]
+        return plantNum.toString().concat(": ", plantInfo['in'].toString(), " ", plantInfo['type'], " => ", plantInfo['out'].toString())
+    }
 }
 
 function resourceStringArray(game_state) { // todo make this better
