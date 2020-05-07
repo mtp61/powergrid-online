@@ -176,6 +176,11 @@ class Game {
                                                     this.game_state['action'] = []
                                                 }
                                             } else { // passing
+                                                if (this.first_turn) {
+                                                    this.serverMessage('cant pass on first turn')
+                                                    break
+                                                }
+
                                                 // helpers, remove from toNom
                                                 this.helpers['toNominate'].splice(0, 1)
 
@@ -220,16 +225,17 @@ class Game {
                                             }
                                             let c = 0, o = 0, t = 0, u = 0 // resource buy amounts
 
+                                            let argError = false // some bot shit happening here with old code, variable name just error
                                             for (let i = 1; i < args.length; i += 2) {
                                                 let r = args[i] // resource
                                                 let a = parseInt(args[i + 1]) // amount
                                                 if (r != "c" && r != "o" && r != "t" && r != "u") { // bad resource type
                                                     this.serverMessage('bad resource type')
-                                                    break
+                                                    argError = true
                                                 }
                                                 if (isNaN(a)) { // amount not a number
                                                     this.serverMessage('amount NaN')
-                                                    break
+                                                    argError = true
                                                 }
                                                 switch (r) {
                                                     case 'c':
@@ -244,9 +250,10 @@ class Game {
                                                     case 'u':
                                                         u += a
                                                         break
-                                                    default:
-                                                        this.serverMessage('how did u even get here???')
                                                 }
+                                            }
+                                            if (argError) {
+                                                break
                                             }
                                                                                         
                                             let cost = this.totalPrice(c, o, t, u)
@@ -260,13 +267,20 @@ class Game {
                                                         this.game_state['resources']['o'] -= o
                                                         this.game_state['resources']['t'] -= t
                                                         this.game_state['resources']['u'] -= u
+                                                       
                                                         // update player resources
                                                         this.game_state['players'][username]['resources']['c'] += c
                                                         this.game_state['players'][username]['resources']['o'] += o
                                                         this.game_state['players'][username]['resources']['t'] += t
                                                         this.game_state['players'][username]['resources']['u'] += u
+                                                        
                                                         // update player money
                                                         this.game_state['players'][username]['money'] -= cost
+                                                        
+                                                        // update helpers
+                                                        let toBuyIndex = this.helpers['toBuy'].indexOf(username)
+                                                        this.helpers['toBuy'].splice(toBuyIndex, 1)
+
                                                         // reset action
                                                         this.game_state['action'] = []
                                                     } else {
@@ -278,6 +292,7 @@ class Game {
                                             } else {
                                                 this.serverMessage('you tried to buy too much of a resource')
                                             }
+
                                             break
                                         case '!build':
                                             // check args
@@ -342,7 +357,7 @@ class Game {
                                             args.slice(1).forEach(arg => {
                                                 if (arg.split('-').length == 1) { // is a city
                                                     // update map, players cities
-                                                    let mapCity = this.game_state['map'][toString(arg)]
+                                                    let mapCity = this.game_state['map'][arg]
 
                                                     if (mapCity[10] == null) { // 10 open
                                                         this.game_state['map'][arg][10] = username
@@ -360,40 +375,100 @@ class Game {
                                             // subtract money
                                             this.game_state['players'][username]['money'] -= buildCost
 
+                                            // update helpers
+                                            let toBuildIndex = this.helpers['toBuild'].indexOf(username)
+                                            this.helpers['toBuild'].splice(toBuildIndex, 1)
+
                                             // reset action
                                             this.game_state['action'] = []
 
                                             break
                                         case '!power':
                                             // probs want to restructure this
+                                            let toPower = []
 
                                             // check args
+                                            let error = false
                                             if (args.length == 1) { // power all
-
-                                                
-
-                                                
+                                                toPower = [...this.game_state['players'][username]['plants']]
                                             } else {
-                                                // check if have plants
-
-                                                // check if have enough resources
-
-                                                // power
-                                            }                                            
-
-                                            // reset action - need to be careful on this one
+                                                args.slice(1).forEach(plantNum => {
+                                                    if (!isNaN(plantNum)) { // is number
+                                                        if (this.game_state['players'][username]['plants'].includes(parseInt(plantNum))) {
+                                                            toPower.push(plantNum)
+                                                        } else {
+                                                            this.serverMessage('dont have plant')
+                                                            error = true
+                                                        }
+                                                    } else {
+                                                        this.serverMessage('non int input')
+                                                        error = true
+                                                    }
+                                                })                                       
+                                            }
+                                            if (error) {
+                                                break
+                                            }
                                             
+                                            // check if have enough resources
+                                            // temp vars 
+                                            let tempC = this.game_state['players'][username]['resources']['c']
+                                            let tempO = this.game_state['players'][username]['resources']['o']
+                                            let tempT = this.game_state['players'][username]['resources']['t']
+                                            let tempU = this.game_state['players'][username]['resources']['u']
+                                            let tempH = 0
+
+                                            let numPowered = 0
+                                            toPower.forEach(plantNum => {
+                                                numPowered += plants[plantNum]['out']
+                                                
+                                                switch (plants[plantNum]['type']) {
+                                                    case 'c':
+                                                        tempC -= plants[plantNum]['in']
+                                                        break
+                                                    case 'o':
+                                                        tempO -= plants[plantNum]['in']
+                                                        break
+                                                    case 't':
+                                                        tempT -= plants[plantNum]['in']
+                                                        break
+                                                    case 'u':
+                                                        tempU -= plants[plantNum]['in']
+                                                        break
+                                                    case 'h':
+                                                        tempH -= plants[plantNum]['in']
+                                                        break
+                                                }
+                                            })
+
+                                            if (tempC < 0 || tempO < 0 || tempT < 0 || tempU < 0 || tempC + tempO + tempH < 0) { // cant afford to power
+                                                this.serverMessage('requires too many resources')
+                                                break
+                                            }
+                                            
+                                            // check numPowered
+                                            let numCities = Object.keys(this.game_state['players'][username]['cities']).length
+                                            if (numPowered > numCities) {
+                                                numPowered = numCities
+                                            }
+
+                                            // update helpers
+                                            let toPowerIndex = this.helpers['toPower'].indexOf(username)
+                                            this.helpers['toPower'].splice(toPowerIndex, 1)
+                                            this.helpers['numPowered'][username] = numPowered
+                                            this.helpers['plantsPowered'][username] = [...toPower]
+                    
+                                            // reset action - need to be careful on this one
+                                            let actionIndex = this.game_state['action'].indexOf([username, '!power'])
+                                            this.game_state['action'].splice(actionIndex, 1)
+
                                             break
                                         default:
                                             this.serverMessage('bad command')
                                     }
                                     
-                                    //console.log('someone tried to do somethings they are allowed to do!!!')
                                 }
                             })
-                            
-
-                            //this.serverMessage(u.concat(": out of turn command"))
                     } 
 
                 } else {
@@ -502,15 +577,12 @@ class Game {
                             this.setupHelpers4()
                         } else { // next person buys
                             let nextBuyIndex = this.helpers['toBuy'].length - 1
+                            
                             // add to action
                             this.game_state['action'].push([this.helpers['toBuy'][nextBuyIndex], 'buy'])
-
-                            // remove from helpers
-                            this.helpers['toBuy'].splice(nextBuyIndex, 1)
                         }
                     }
-
-                    // can rest if no action
+                    // rest while action exists                    
 
                     break;
                 case 4: // build cities
@@ -521,29 +593,33 @@ class Game {
                             this.setupHelpers5()
                         } else { // next person builds
                             let nextBuildIndex = this.helpers['toBuild'].length - 1
+                            
                             // add to action
                             this.game_state['action'].push([this.helpers['toBuild'][nextBuildIndex], 'build'])
-
-                            // remove from helpers
-                            this.helpers['toBuild'].splice(nextBuildIndex, 1)
                         }
                     }
-                    // can rest if no action
+                    // rest while action exists                    
 
                     break;
                 case 5: // bureaucracy
-                    this.game_state['step'] = 1
+                    //this.game_state['step'] = 1
 
                     // check if action
-
-
-
-                    // once all players have powered, do this shit (will need to be moved)
-                    this.doBureaucracy()
-
-                    if (this.first_turn) {
-                        this.first_turn = false
-                    }
+                    if (this.game_state['action'].length == 0) { // no action
+                        if (this.helpers['toPower'].length == 0) { // all players have powered
+                            this.doBureaucracy()
+                            if (this.first_turn) {
+                                this.first_turn = false
+                            }
+                            this.game_state['step'] = 1
+                            this.serverMessage('step 5 done')
+                        } else { // still need to setup actions
+                            this.helpers['toPower'].forEach(username => {
+                                this.game_state['action'].push([username, 'power'])
+                            })
+                        }
+                    } 
+                    // rest while action exists                    
 
                     break;
             }
@@ -627,8 +703,13 @@ class Game {
         let playerScores = {} // determine scores, sort by score
         Object.keys(this.game_state['players']).forEach(username => {
             let numCities = Object.keys(this.game_state['players'][username]['cities']).length
-            let money = this.game_state['players'][username]['money']
-            playerScores[username] = 1000 * numCities + money
+            let topPlant = 0
+            this.game_state['players'][username]['plants'].forEach(plantNum => {
+                if (plantNum > topPlant) {
+                    topPlant = plantNum
+                }
+            })
+            playerScores[username] = 100 * numCities + topPlant
         })
         // sort
         while (Object.keys(playerScores).length > 0) {
