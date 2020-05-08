@@ -488,7 +488,13 @@ class Game {
                                             this.helpers['plantsPowered'][username] = [...toPower]
                     
                                             // reset action - need to be careful on this one
-                                            let actionIndex = this.game_state['action'].indexOf([username, 'power'])
+                                            let actionIndex
+                                            for (let i = 0; i < this.game_state['action'].length; i++) {
+                                                if (this.game_state['action'][i][0] == username) {
+                                                    actionIndex = i
+                                                }
+                                            }
+                                            
                                             this.game_state['action'].splice(actionIndex, 1)
 
                                             console.log(JSON.stringify(this.helpers))
