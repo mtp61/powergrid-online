@@ -118,14 +118,14 @@ function drawMap(x_offset, y_offset, width, height, game_state) {
     // loop thru cities
     const vGap = 12
     Object.keys(map).forEach(city_number => {
-        let cityX = x_offset + sideGap + gapX * (map[city_number]["x"] - 1)
-        let cityY = y_offset + sideGap + gapY * (map[city_number]["y"] - 1)
+        let cityX = x_offset + sideGap + gapX * (map[city_number]["x"] - minX)
+        let cityY = y_offset + sideGap + gapY * (map[city_number]["y"] - minY)
 
         let city_text = [[city_number, "black"], [map[city_number]['name'], "black"]]
         
         Object.keys(game_state['map'][city_number]).forEach(cost => {
             if (game_state['map'][city_number][cost] == null) {
-                city_text.push([cost.concat(": none"), "black"])
+                city_text.push(["", "black"]) // cost.concat(": none")
             } else {
                 let username = game_state['map'][city_number][cost]
                 city_text.push([cost.concat(": ", username.slice(0, 5)), game_state['players'][username]['color']])
@@ -152,10 +152,10 @@ function drawMap(x_offset, y_offset, width, height, game_state) {
     connections.forEach(connection => {
         // get endpoints
         let c1 = connection[0], c2 = connection[1]
-        let c1X = x_offset + sideGap + gapX * (map[c1]["x"] - 1)
-        let c1Y = y_offset + sideGap + gapY * (map[c1]["y"] - 1)
-        let c2X = x_offset + sideGap + gapX * (map[c2]["x"] - 1)
-        let c2Y = y_offset + sideGap + gapY * (map[c2]["y"] - 1)
+        let c1X = x_offset + sideGap + gapX * (map[c1]["x"] - minX)
+        let c1Y = y_offset + sideGap + gapY * (map[c1]["y"] - minY)
+        let c2X = x_offset + sideGap + gapX * (map[c2]["x"] - minX)
+        let c2Y = y_offset + sideGap + gapY * (map[c2]["y"] - minY)
         
         // midpoint
         let mX = (c1X + c2X) / 2, mY = (c1Y + c2Y) / 2
@@ -354,11 +354,33 @@ function resourceStringArray(game_state) { // todo make this better
     let t = game_state['resources']['t']
     let u = game_state['resources']['u']
 
+    // compute costs
+    let costC = 8 - Math.floor((this.game_state['resources']['c'] - 1) / 3)
+    let costO = 8 - Math.floor((this.game_state['resources']['o'] - 1) / 3)
+    let costT = 8 - Math.floor((this.game_state['resources']['t'] - 1) / 3)
+    let costU
+    switch (this.game_state['resources']['u']) { // ammt of u in market
+        case 1:
+            costU = 16
+            break
+        case 2:
+            costU = 14
+            break
+        case 3:
+            costU = 12
+            break
+        case 4:
+            costU = 10
+            break
+        default:
+            costU = 13 - this.game_state['resources']['u']
+    }
+
     // make strings
-    let cString = "c: ".concat(c)
-    let oString = "o: ".concat(o)
-    let tString = "t: ".concat(t)
-    let uString = "u: ".concat(u)
+    let cString = "c: ".concat(c, ' - $', costC)
+    let oString = "o: ".concat(o, ' - $', costO)
+    let tString = "t: ".concat(t, ' - $', costT)
+    let uString = "u: ".concat(u, ' - $', costU)
 
     return [[cString, "brown"], [oString, 'black'], [tString, 'orange'], [uString, "red"]]
 }
