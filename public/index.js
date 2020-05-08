@@ -1,4 +1,4 @@
-const socket = io('174.141.194.194:3331')
+const socket = io('174.141.194.194:80')
 
 const gameContainer = document.getElementById('game-container')
 
@@ -18,5 +18,5 @@ socket.on('game_created', gameName => {
 })
 
 socket.on('game_removed', game => {
-    
+    // todo
 })
