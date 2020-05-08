@@ -181,7 +181,7 @@ class Game {
 
                                                     // helpers
                                                     this.helpers['currentPlant'] = nom
-                                                    this.helpers['canBid'] = this.helpers['toNominate']
+                                                    this.helpers['canBid'] = [...this.helpers['toNominate']]
                                                     this.helpers['lastBid'] = nom
                                                     this.helpers['lastBidder'] = username
 
@@ -207,11 +207,13 @@ class Game {
                                                 if (!isNaN(bid)) {// bid is a number 
                                                     // check if bid is greater than previous
                                                     if (bid <= this.helpers['lastBid']) {
+                                                        this.serverMessage('bid less than previous')
                                                         break
                                                     }
                                                     
                                                     // check if bid is less than or equal to player money
                                                     if (bid > this.game_state['players'][username]['money']) {
+                                                        this.serverMessage('bid more than money')
                                                         break
                                                     }
                                                     // update helpers
@@ -354,21 +356,23 @@ class Game {
 
                                             // check if build works and can afford
                                             let buildCost = this.buildCost(username, args.slice(1))
-                                            if (buildCost >= 0) { // build possibe
+                                            if (buildCost >= 0) { // build possible
                                                 if (buildCost <= this.game_state['players'][username]['money']) {// can afford
                                                 
                                                 } else {
-                                                    this.serverMessage(username.concat(" - cant afford build"))
+                                                    this.serverMessage(" - cant afford build")
                                                     break
                                                 }
                                             } else {
-                                                this.serverMessage(username.concat(" - build not possible"))
+                                                this.serverMessage(" - build not possible")
                                                 break
                                             }
 
                                             // execute build
                                             args.slice(1).forEach(arg => {
                                                 if (arg.split('-').length == 1) { // is a city
+                                                    arg = parseInt(arg)
+
                                                     // update map, players cities
                                                     let mapCity = this.game_state['map'][arg]
 
@@ -541,9 +545,31 @@ class Game {
                             }
                         } else { // there is a plant
                             if (this.helpers['canBid'].length == 1) { // only one person still in, they get it
-                                // give them the plant, todo recycle if needed
+                                // recycle if needed todo make a new choose action
+                                let numPlants = this.game_state['players'][this.helpers['lastBidder']]['plants'].length
+                                if (numPlants == 3) { // need to recycle
+                                    let lowPlant = 100
+                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].forEach(plantNum => {
+                                        if (plantNum < lowPlant) {
+                                            lowPlant = plantNum
+                                        }
+                                        let lowIndex = this.game_state['players'][this.helpers['lastBidder']]['plants'].indexOf(lowPlant)
+                                        this.game_state['players'][this.helpers['lastBidder']]['plants'].splice(lowIndex, 1)
+
+                                        this.serverMessage('getting rid of lowest plant')
+                                    })
+                
+
+                                }
+                                
+                                
+                                // give them the plant
                                 this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])
                                 
+                                
+                                
+
+
                                 // todo recycle resources if can't store
                                 
 
@@ -988,7 +1014,6 @@ class Game {
                     new_deck.splice(randIndex, 0, this.plant_deck.pop())
                 }
                 this.plant_deck = [...new_deck]
-
             }
         }
         // do nothing if already phase 3
@@ -1001,6 +1026,10 @@ class Game {
         let boughtCities = [...Object.keys(this.game_state['players'][username]['cities'])] // temp var to store bought cities
         let canBuyCities = [] // temp var, includes cities connected to
 
+        for (let i = 0; i < boughtCities.length; i++) { // this is bot shit not sure why its needed......
+            boughtCities[i] = parseInt(boughtCities[i])
+        }
+
         let noCities = false
         if (boughtCities.length == 0) {
             noCities = true
@@ -1010,7 +1039,7 @@ class Game {
         args.forEach(arg => {
             arg = arg.split('-')
             if (arg.length == 1) { // city
-                let city = arg[0]
+                let city = parseInt(arg[0])
 
                 if (noCities) { // havent built any cities
                     // find lowest cost
@@ -1028,8 +1057,8 @@ class Game {
                         this.log('city full, has not built first')
                     }
 
-                    noCities = false // now has build a ity
-                } else if (canBuyCities.includes(city)) { // has build cities, can go to city
+                    noCities = false // now has built a city
+                } else if (canBuyCities.includes(city)) { // has built cities, can go to city
                     // remove from canbuycities
                     canBuyCities.splice(canBuyCities.indexOf(city), 1)
                     // find lowest cost
@@ -1048,31 +1077,40 @@ class Game {
                     }
                 } else {
                     canBuild = false
+                    this.log('not allowed to buy city')
                 }
             } else if (arg.length == 2) { // connection
-                let city1 = arg[0], city2 = arg[1]
+                let city1 = parseInt(arg[0]), city2 = parseInt(arg[1])
+                console.log(city1, city2)
+                console.log(JSON.stringify(boughtCities), JSON.stringify(canBuyCities))
+                console.log(boughtCities.includes(city1), [1].includes(1))
                 let bCity1 = boughtCities.includes(city1) || canBuyCities.includes(city1)
                 let bCity2 = boughtCities.includes(city2) || canBuyCities.includes(city2)
+                console.log(bCity1)
                 if (bCity1 && bCity2) { // own both ends of the connection
                     canBuild = false
-                } if (bCity1) { // own city1
+                    this.log('own both ends of connection')
+                } else if (bCity1) { // own city1
                     let connectionCost = map[city1]['connections'][city2]
                     if (!isNaN(connectionCost)) { // cities connected
                         buildCost += connectionCost // add cost
                         canBuyCities.push(city2) // add to canBuyCities
                     } else {
                         canBuild = false
+                        this.log('connection doesnt exist')
                     }
-                } if (bCity2) { // own city2
+                } else if (bCity2) { // own city2
                     let connectionCost = map[city2]['connections'][city1]
                     if (!isNaN(connectionCost)) { // cities connected
                         buildCost += connectionCost // add cost
                         canBuyCities.push(city1) // add to canBuyCities
                     } else {
                         canBuild = false
+                        this.log('connection doesnt exist')
                     }
                 } else { // own neither end of the connection
                     canBuild = false
+                    this.log('own neither end of the connection')
                 }
             } else {
                 this.serverMessage('shouldnt get here buildcost')

@@ -79,7 +79,7 @@ app.delete('/logout', (req, res) => {
   res.redirect('/')
 })
 
-server.listen(3000)
+server.listen(3331)
 
 // socket io shit
 io.on('connection', socket => {

@@ -1,4 +1,4 @@
-const socket = io('http://localhost:3000')
+const socket = io('174.141.194.194:3331')
 
 const gameContainer = document.getElementById('game-container')
 
