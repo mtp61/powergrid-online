@@ -247,7 +247,7 @@ class Game {
                                             break;
                                         case '!buy':
                                             if (args.length % 2 == 0) { // make sure even args (not inc. first)
-                                                this.serverMessage('bad argument, %2!=1')
+                                                this.serverMessage('bad number of args')
                                                 break
                                             }
                                             let c = 0, o = 0, t = 0, u = 0 // resource buy amounts
@@ -257,11 +257,9 @@ class Game {
                                                 let r = args[i] // resource
                                                 let a = parseInt(args[i + 1]) // amount
                                                 if (r != "c" && r != "o" && r != "t" && r != "u") { // bad resource type
-                                                    this.serverMessage('bad resource type')
                                                     argError = true
                                                 }
                                                 if (isNaN(a)) { // amount not a number
-                                                    this.serverMessage('amount NaN')
                                                     argError = true
                                                 }
                                                 switch (r) {
@@ -280,6 +278,7 @@ class Game {
                                                 }
                                             }
                                             if (argError) {
+                                                this.serverMessage('argument error')
                                                 break
                                             }
                                                                                         
@@ -491,6 +490,9 @@ class Game {
                                             // reset action - need to be careful on this one
                                             let actionIndex = this.game_state['action'].indexOf([username, '!power'])
                                             this.game_state['action'].splice(actionIndex, 1)
+
+                                            console.log(JSON.stringify(this.helpers))
+                                            console.log(JSON.stringify(this.game_state['action']))
 
                                             break
                                         default:
@@ -820,15 +822,12 @@ class Game {
         // c o t
         for (let i = 0; i < c; i++) { // buy c coals
             cost += 8 - Math.floor((this.game_state['resources']['c'] - i - 1) / 3)
-            this.game_state['resources']['c']--
         }
         for (let i = 0; i < o; i++) { // buy o oil
             cost += 8 - Math.floor((this.game_state['resources']['o'] - i - 1) / 3)
-            this.game_state['resources']['o']--
         }
         for (let i = 0; i < t; i++) { // buy t trash
             cost += 8 - Math.floor((this.game_state['resources']['t'] - i - 1) / 3)
-            this.game_state['resources']['t']--
         }
 
         // u
@@ -849,8 +848,6 @@ class Game {
                 default:
                     cost += 13 - this.game_state['resources']['u']
             }
-
-            this.game_state['resources']['u']--
         }
 
         return cost      
