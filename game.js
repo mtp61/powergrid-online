@@ -819,21 +819,21 @@ class Game {
         
         // c o t
         for (let i = 0; i < c; i++) { // buy c coals
-            cost += 8 - Math.floor((this.game_state['resources']['c'] - 1) / 3)
+            cost += 8 - Math.floor((this.game_state['resources']['c'] - i - 1) / 3)
             this.game_state['resources']['c']--
         }
         for (let i = 0; i < o; i++) { // buy o oil
-            cost += 8 - Math.floor((this.game_state['resources']['o'] - 1) / 3)
+            cost += 8 - Math.floor((this.game_state['resources']['o'] - i - 1) / 3)
             this.game_state['resources']['o']--
         }
         for (let i = 0; i < t; i++) { // buy t trash
-            cost += 8 - Math.floor((this.game_state['resources']['t'] - 1) / 3)
+            cost += 8 - Math.floor((this.game_state['resources']['t'] - i - 1) / 3)
             this.game_state['resources']['t']--
         }
 
         // u
         for (let i = 0; i < u; i++) {
-            switch (this.game_state['resources']['u']) { // ammt of u in market
+            switch (this.game_state['resources']['u'] - i) { // ammt of u in market
                 case 1:
                     cost += 16
                     break

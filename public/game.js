@@ -355,11 +355,11 @@ function resourceStringArray(game_state) { // todo make this better
     let u = game_state['resources']['u']
 
     // compute costs
-    let costC = 8 - Math.floor((this.game_state['resources']['c'] - 1) / 3)
-    let costO = 8 - Math.floor((this.game_state['resources']['o'] - 1) / 3)
-    let costT = 8 - Math.floor((this.game_state['resources']['t'] - 1) / 3)
+    let costC = 8 - Math.floor((game_state['resources']['c'] - 1) / 3)
+    let costO = 8 - Math.floor((game_state['resources']['o'] - 1) / 3)
+    let costT = 8 - Math.floor((game_state['resources']['t'] - 1) / 3)
     let costU
-    switch (this.game_state['resources']['u']) { // ammt of u in market
+    switch (game_state['resources']['u']) { // ammt of u in market
         case 1:
             costU = 16
             break
@@ -373,7 +373,7 @@ function resourceStringArray(game_state) { // todo make this better
             costU = 10
             break
         default:
-            costU = 13 - this.game_state['resources']['u']
+            costU = 13 - game_state['resources']['u']
     }
 
     // make strings
