@@ -45,6 +45,18 @@ class Game {
                 if (!this.game_state['finished']) { // no commands if the game is finished
                     const args = m.split(" ")
                     switch (args[0]) {
+                        case "!regions":
+                            // simple implementation, need to make stronger
+                            try {
+                                this.game_state['regions'] = []
+                                for (let i = 1; i < args.length; i++) {
+                                    this.game_state['regions'].push(parseInt(args[i]))
+                                }
+                                this.serverMessage('updated regions')
+                            } catch {
+                                this.serverMessage('bad region input')
+                            }
+                            break
                         case "!ready":
                             if (!this.game_state['active'] && this.game_state['players'][u] == null && Object.keys(this.game_state['players']).length < 6) {
                                 this.game_state['players'][u] = {}
