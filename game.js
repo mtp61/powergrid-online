@@ -310,7 +310,7 @@ class Game {
                                                         // reset action
                                                         this.game_state['action'] = []
                                                     } else {
-                                                        this.serverMessage('cant hold those resources')
+                                                        this.serverMessage('can hold all those damn resources')
                                                     }
                                                 } else {
                                                     this.serverMessage('you')
@@ -488,7 +488,7 @@ class Game {
                                             this.helpers['plantsPowered'][username] = [...toPower]
                     
                                             // reset action - need to be careful on this one
-                                            let actionIndex = this.game_state['action'].indexOf([username, '!power'])
+                                            let actionIndex = this.game_state['action'].indexOf([username, 'power'])
                                             this.game_state['action'].splice(actionIndex, 1)
 
                                             console.log(JSON.stringify(this.helpers))
@@ -874,14 +874,12 @@ class Game {
 
         // check trash and uranium
         if (capacity['t'] < t || capacity['u'] < u) {
-            this.serverMessage('you cant store all of those damn resourceis')
             return false
         }
 
         // check coal and oil
         if (c > capacity['c'] || o > capacity['o']) { // c or o over cap
             if (c + h > capacity['c'] + capacity['h'] || o + h > capacity['o'] + capacity['h'] || c + o + h > capacity['c'] + capacity['o'] + capacity['h']) {
-                this.serverMessage('you cant store all of those damn resourceis')
                 return false
             }
         }
@@ -1090,9 +1088,6 @@ class Game {
                 }
             } else if (arg.length == 2) { // connection
                 let city1 = parseInt(arg[0]), city2 = parseInt(arg[1])
-                console.log(city1, city2)
-                console.log(JSON.stringify(boughtCities), JSON.stringify(canBuyCities))
-                console.log(boughtCities.includes(city1), [1].includes(1))
                 let bCity1 = boughtCities.includes(city1) || canBuyCities.includes(city1)
                 let bCity2 = boughtCities.includes(city2) || canBuyCities.includes(city2)
                 console.log(bCity1)
