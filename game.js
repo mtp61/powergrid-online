@@ -23,8 +23,11 @@ class Game {
         this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
         this.plug_plants = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-        this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
-             
+        this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25] //, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
+
+        //this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
+
+        
         this.plant_deck = []
         
         this.first_turn = true
@@ -496,10 +499,7 @@ class Game {
                                             }
                                             
                                             this.game_state['action'].splice(actionIndex, 1)
-
-                                            console.log(JSON.stringify(this.helpers))
-                                            console.log(JSON.stringify(this.game_state['action']))
-
+                                    
                                             break
                                         default:
                                             this.serverMessage('bad command')
@@ -1096,7 +1096,7 @@ class Game {
                 let city1 = parseInt(arg[0]), city2 = parseInt(arg[1])
                 let bCity1 = boughtCities.includes(city1) || canBuyCities.includes(city1)
                 let bCity2 = boughtCities.includes(city2) || canBuyCities.includes(city2)
-                console.log(bCity1)
+
                 if (bCity1 && bCity2) { // own both ends of the connection
                     canBuild = false
                     this.log('own both ends of connection')
