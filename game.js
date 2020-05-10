@@ -239,12 +239,13 @@ class Game {
                                             } else { // passing
                                                 // helpers, remove from canbid
                                                 let bidderIndex = this.helpers['canBid'].indexOf(username)
-                                                if (bidderIndex == -1) {
+                                                if (bidderIndex == -1) { // testing
                                                     this.log('bid passing error'.concat(' ', JSON.stringify(this.helpers)))
                                                 }
                                                 this.helpers['canBid'].splice(bidderIndex, 1)
 
                                                 this.serverMessage(username.concat(' passed on bidding, ', this.helpers['canBid'].length, " bidders remaining"))
+                                                this.log(username.concat(' pass, ', JSON.stringify(this.helpers))) // tesing
 
                                                 // reset action
                                                 this.game_state['action'] = []
@@ -589,7 +590,42 @@ class Game {
                                 // recycle resources if can't store
                                 if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
                                     this.serverMessage('cant hold resources with new plant, getting rid of some')
-                                    // todo2
+                                    
+                                    let playerPlants = this.game_state['players'][username]['plants']
+                                    let res = this.game_state['players'][username]['resources']
+                                    
+                                    let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
+                                    playerPlants.forEach(plantNum => {
+                                        let plantType = plants[plantNum]['type']
+                                        if (plantType != 'r') { // not renewable
+                                            capacity[plantType] += 2 * plants[plantNum]['in']
+                                        }
+                                    })
+
+                                    // t
+                                    if (res['t'] > capacity['t']) {
+                                        res['t'] = capacity['t']
+                                    }
+
+                                    // u 
+                                    if (res['u'] > capacity['u']) {
+                                        res['u'] = capacity['u']
+                                    }
+
+                                    // c
+                                    if (res['c'] > capacity['c'] + capacity['h']) {
+                                        res['c'] = capacity['c'] + capacity['h']
+                                    }
+
+                                    // o
+                                    if (res['o'] > capacity['o'] + capacity['h']) {
+                                        res['o'] = capacity['o'] + capacity['h']
+                                    }
+
+                                    // h
+                                    if (res['c'] + res['o'] > capacity['c'] + capacity['o'] + capacity['h']) {
+                                        res['o'] = capacity['c'] + capacity['o'] + capacity['h'] - res['c']
+                                    }
                                 }
 
                                 // update money
