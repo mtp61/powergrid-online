@@ -23,10 +23,7 @@ class Game {
         this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
         this.plug_plants = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-        this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25] //, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
-
-        //this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
-
+        this.socket_plants = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50]
         
         this.plant_deck = []
         
@@ -111,7 +108,7 @@ class Game {
                                         removed_plants.push(this.socket_plants[randNum])
                                         this.socket_plants.splice(randNum, 1)
                                     }
-                                } else { // remove 2 plug 6 socket
+                                } else if (numPlayers == 3) { // remove 2 plug 6 socket
                                     for (let i = 0; i < 2; i++) { // remove 2 plug
                                         let randNum = Math.floor(Math.random() * this.plug_plants.length)
                                         removed_plants.push(this.plug_plants[randNum])
@@ -242,7 +239,12 @@ class Game {
                                             } else { // passing
                                                 // helpers, remove from canbid
                                                 let bidderIndex = this.helpers['canBid'].indexOf(username)
+                                                if (bidderIndex == -1) {
+                                                    this.log('bid passing error'.concat(' ', JSON.stringify(this.helpers)))
+                                                }
                                                 this.helpers['canBid'].splice(bidderIndex, 1)
+
+                                                this.serverMessage(username.concat(' passed on bidding, ', this.helpers['canBid'].length, " bidders remaining"))
 
                                                 // reset action
                                                 this.game_state['action'] = []
@@ -313,7 +315,7 @@ class Game {
                                                         // reset action
                                                         this.game_state['action'] = []
                                                     } else {
-                                                        this.serverMessage('can hold all those damn resources')
+                                                        this.serverMessage('cant hold all those damn resources')
                                                     }
                                                 } else {
                                                     this.serverMessage('you')
@@ -578,20 +580,17 @@ class Game {
 
                                         this.serverMessage('getting rid of lowest plant')
                                     })
-                
-
                                 }
                                 
                                 
                                 // give them the plant
                                 this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])
                                 
-                                
-                                
-
-
-                                // todo recycle resources if can't store
-                                
+                                // recycle resources if can't store
+                                if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
+                                    this.serverMessage('cant hold resources with new plant, getting rid of some')
+                                    // todo2
+                                }
 
                                 // update money
                                 this.game_state['players'][this.helpers['lastBidder']]['money'] -= this.helpers['lastBid']
@@ -608,6 +607,9 @@ class Game {
 
                             } else { // someone else needs to bid
                                 let lastBidIndex = this.helpers['canBid'].indexOf(this.helpers['lastBidder'])
+                                if (lastBidIndex == -1) {
+                                    console.log('theres a bug here'.concat(JSON.stringify(this.helpers))) // testing
+                                }
                                 let nextBidder
                                 if (lastBidIndex + 1 == this.helpers['canBid'].length) {
                                     nextBidder = this.helpers['canBid'][0]
@@ -615,7 +617,7 @@ class Game {
                                     nextBidder = this.helpers['canBid'][lastBidIndex + 1]
                                 }
                                 
-                                this.game_state['action'] = [[nextBidder , 'bid']]
+                                this.game_state['action'] = [[nextBidder, 'bid']]
                             }
                         }
                         
@@ -868,7 +870,6 @@ class Game {
         o += res['o']
         t += res['t']
         u += res['u']
-        let h = c + o
 
         let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
         playerPlants.forEach(plantNum => {
@@ -885,7 +886,7 @@ class Game {
 
         // check coal and oil
         if (c > capacity['c'] || o > capacity['o']) { // c or o over cap
-            if (c + h > capacity['c'] + capacity['h'] || o + h > capacity['o'] + capacity['h'] || c + o + h > capacity['c'] + capacity['o'] + capacity['h']) {
+            if (c > capacity['c'] + capacity['h'] || o > capacity['o'] + capacity['h'] || c + o > capacity['c'] + capacity['o'] + capacity['h']) {
                 return false
             }
         }

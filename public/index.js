@@ -1,4 +1,4 @@
-const socket = io('174.141.194.194:80')
+const socket = io('powergrid.life') // powergrid.life
 
 const gameContainer = document.getElementById('game-container')
 
