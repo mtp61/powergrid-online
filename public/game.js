@@ -227,18 +227,26 @@ function drawInfo(x_offset, y_offset, width, height, game_state) {
     })*/
 
     let playerIndex = 1
-    Object.keys(game_state['players']).forEach(username => {
+    game_state['order'].forEach(username => {
         ctx.fillStyle = game_state['players'][username]['color']
 
         let numCities = Object.keys(game_state['players'][username]['cities']).length
         let money = game_state['players'][username]['money']
 
+        let plantStr = ""
+        let plants = [...game_state['players'][username]['plants']]
+        plants = [3,4,5]
+        plants.forEach(plant => {
+            plantStr = plantStr.concat(plantToString(plant), ",  ")
+        })
+        plantStr = plantStr.slice(0, -3)
+
         // username, cities, money, plants, resources
         ctx.fillText(playerIndex.toString().concat(" - ", username), x_offset + 5, y_offset + playerIndex * yGap)
         ctx.fillText(numCities.toString().concat(' cities'), x_offset + 110, y_offset + playerIndex * yGap)
         ctx.fillText("$".concat(money.toString()), x_offset + 165, y_offset + playerIndex * yGap)
-        ctx.fillText(JSON.stringify(game_state['players'][username]['plants']).slice(1, -1), x_offset + 220, y_offset + playerIndex * yGap)
-        ctx.fillText(JSON.stringify(game_state['players'][username]['resources']).slice(1, -1), x_offset + 260, y_offset + playerIndex * yGap)
+        ctx.fillText(plantStr, x_offset + 200, y_offset + playerIndex * yGap)
+        ctx.fillText(JSON.stringify(game_state['players'][username]['resources']).slice(1, -1), x_offset + 400, y_offset + playerIndex * yGap)
 
         playerIndex++
     })
