@@ -52,10 +52,17 @@ function appendMessage(message) {
     messageContainer.scrollTop = messageContainer.scrollHeight
 }
 
+var old_game_state
+
 // render canvas
 function render(game_state) {
     // testing
-    console.log(JSON.stringify(game_state))
+    let string_state = JSON.stringify(game_state)
+    if (string_state !== old_game_state) {
+        console.log(string_state)
+        old_game_state = string_state
+    }
+    
 
     // static vars
     const rightBarWidth = 80
@@ -80,7 +87,6 @@ function render(game_state) {
         // draw different aspects
         // draw the map
         drawMap(0, topBarHeight, width - rightBarWidth, height - topBarHeight, game_state)
-        console.log(width, height)
 
         // draw the info
         drawInfo(0, 0, width - actionWidth, topBarHeight, game_state)
@@ -211,20 +217,33 @@ function drawInfo(x_offset, y_offset, width, height, game_state) {
     ctx.fillStyle = "black"
     const yGap = 15
 
-    let playerIndex = 1
+    /*let playerIndex = 1
     playerStringArray(game_state).forEach(([playerStr, color]) => {
         ctx.fillStyle = color
+        
         ctx.fillText(playerStr, x_offset + 5, y_offset + playerIndex * yGap)
         
         playerIndex++
+    })*/
+
+    let playerIndex = 1
+    Object.keys(game_state['players']).forEach(username => {
+        ctx.fillStyle = game_state['players'][username]['color']
+
+        let numCities = Object.keys(game_state['players'][username]['cities']).length
+        let money = game_state['players'][username]['money']
+
+        // username, cities, money, plants, resources
+        ctx.fillText(playerIndex.toString().concat(" - ", username), x_offset + 5, y_offset + playerIndex * yGap)
+        ctx.fillText(numCities.toString().concat(' cities'), x_offset + 110, y_offset + playerIndex * yGap)
+        ctx.fillText("$".concat(money.toString()), x_offset + 165, y_offset + playerIndex * yGap)
+        ctx.fillText(JSON.stringify(game_state['players'][username]['plants']).slice(1, -1), x_offset + 220, y_offset + playerIndex * yGap)
+        ctx.fillText(JSON.stringify(game_state['players'][username]['resources']).slice(1, -1), x_offset + 260, y_offset + playerIndex * yGap)
+
+        playerIndex++
     })
 
-    /*
-    // testing
-    ctx.beginPath();
-    ctx.moveTo(x_offset, y_offset);
-    ctx.lineTo(x_offset + width, y_offset + height);
-    ctx.stroke();*/
+
 }
 
 function drawPlants(x_offset, y_offset, width, height, game_state) {
@@ -304,11 +323,12 @@ function drawResources(x_offset, y_offset, width, height, game_state) {
 function drawAction(x_offset, y_offset, width, height, game_state) {
     // setup text
     ctx.font = "11px Georgia"
-    ctx.fillStyle = "black"
+    
     const yGap = 15
 
     let actionIndex = 1
     game_state['action'].forEach(action => {
+        ctx.fillStyle = game_state['players'][action[0]]['color']
         ctx.fillText(JSON.stringify(action), x_offset + 5, y_offset + actionIndex * yGap)
         actionIndex++
     })
