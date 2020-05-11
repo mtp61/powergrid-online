@@ -79,6 +79,10 @@ app.delete('/logout', (req, res) => {
   res.redirect('/')
 })
 
+app.get('/game-info', (req, res) => {
+  res.render('game_info.ejs')
+})
+
 server.listen(3331)
 
 // socket io shit

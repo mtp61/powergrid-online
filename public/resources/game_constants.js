@@ -75,7 +75,7 @@ const plants = {
         'in': 0,
         'out': 3},
     28: {'type': 'u',
-        'in': 0,
+        'in': 1,
         'out': 4},
     29: {'type': 'h',
         'in': 1,

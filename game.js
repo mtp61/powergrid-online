@@ -569,23 +569,24 @@ class Game {
                         } else { // there is a plant
                             if (this.helpers['canBid'].length == 1) { // only one person still in, they get it
                                 // recycle if needed todo make a new choose action
+
                                 let numPlants = this.game_state['players'][this.helpers['lastBidder']]['plants'].length
                                 if (numPlants == 3) { // need to recycle
-                                    let lowPlant = 100
+                                    let lowPlant = 100, lowIndex
                                     this.game_state['players'][this.helpers['lastBidder']]['plants'].forEach(plantNum => {
                                         if (plantNum < lowPlant) {
                                             lowPlant = plantNum
                                         }
-                                        let lowIndex = this.game_state['players'][this.helpers['lastBidder']]['plants'].indexOf(lowPlant)
-                                        this.game_state['players'][this.helpers['lastBidder']]['plants'].splice(lowIndex, 1)
-
-                                        this.serverMessage('getting rid of lowest plant')
+                                        lowIndex = this.game_state['players'][this.helpers['lastBidder']]['plants'].indexOf(lowPlant)
                                     })
+
+                                    // get rid of plant
+                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].splice(lowIndex, 1)
+                                    this.serverMessage('getting rid of lowest plant - '.concat(lowPlant)) // todo should show the number of the plant
                                 }
                                 
-                                
                                 // give them the plant
-                                this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])
+                                this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])               
                                 
                                 // recycle resources if can't store
                                 if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
@@ -964,7 +965,7 @@ class Game {
                 let phase2Cities = phase2_cities[numPlayers] // numplayers should already be defined
 
                 Object.keys(this.game_state['players']).forEach(username => {
-                    let playerCities = Object.keys(this.game_state['players']).length
+                    let playerCities = Object.keys(this.game_state['players'][username]['cities']).length
                     if (playerCities >= phase2Cities) { // it is phase 2
                         this.game_state['phase'] = 2
                     }

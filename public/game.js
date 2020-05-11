@@ -128,7 +128,16 @@ function drawMap(x_offset, y_offset, width, height, game_state) {
                 city_text.push(["", "black"]) // cost.concat(": none")
             } else {
                 let username = game_state['map'][city_number][cost]
-                city_text.push([cost.concat(": ", username.slice(0, 5)), game_state['players'][username]['color']])
+                city_text.push(["", "black"])
+                //city_text.push([cost.concat(": ", username.slice(0, 5)), game_state['players'][username]['color']])
+                
+                // circle
+                let circleX = cityX + 22 * ((cost - 15) / 5)
+                let circleY = cityY + 8
+                ctx.fillStyle = game_state['players'][username]['color'] // color
+                ctx.beginPath()
+                ctx.arc(circleX, circleY, 8, 0, 2 * Math.PI, false)
+                ctx.fill()
             }
         })
 
