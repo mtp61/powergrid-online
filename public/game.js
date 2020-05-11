@@ -235,7 +235,6 @@ function drawInfo(x_offset, y_offset, width, height, game_state) {
 
         let plantStr = ""
         let plants = [...game_state['players'][username]['plants']]
-        plants = [3,4,5]
         plants.forEach(plant => {
             plantStr = plantStr.concat(plantToString(plant), ",  ")
         })
