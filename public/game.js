@@ -17,9 +17,7 @@ console.log('connected using game conneciton')
 console.log(gameName, username)
 
 // new game state
-socket.on('game_state', game_state => {
-    console.log('new game state')
-    
+socket.on('game_state', game_state => {    
     // update messages
     game_state['messages'].forEach(message => {
         appendMessage(message)
@@ -92,7 +90,7 @@ function render(game_state) {
         drawInfo(0, 0, width - actionWidth, topBarHeight, game_state)
 
         // draw the plants
-        drawPlants(width - rightBarWidth, topBarHeight, rightBarWidth, (height - topBarHeight) / 2, game_state)
+        drawPlants(width - rightBarWidth, topBarHeight + 30, rightBarWidth, (height - topBarHeight) / 2, game_state)
 
         // draw resources
         drawResources(width - rightBarWidth, topBarHeight + (height - topBarHeight) / 2, rightBarWidth, (height - topBarHeight) / 2, game_state)
@@ -262,6 +260,15 @@ function drawPlants(x_offset, y_offset, width, height, game_state) {
     ctx.fillText("Plant Market", x_offset, y_offset + yGap)
 
     let plantIndex = 2
+
+    // check if one active
+    if (game_state['helpers']['oneActive']) {
+        ctx.fillStyle = "blue"
+        ctx.fillText('1 active', x_offset, plantIndex * yGap + y_offset)
+
+        plantIndex++
+    }
+
     game_state['market'].forEach(plantNum => {
         if (plantNum == 333) {// phase 3 card 
             ctx.fillStyle = "black"
@@ -330,10 +337,13 @@ function drawResources(x_offset, y_offset, width, height, game_state) {
 function drawAction(x_offset, y_offset, width, height, game_state) {
     // setup text
     ctx.font = "11px Georgia"
-    
-    const yGap = 15
+    ctx.fillStyle = 'black'
 
-    let actionIndex = 1
+    const yGap = 15
+    let actionIndex = 2
+    
+    ctx.fillText("phase ".concat(game_state['phase'].toString(), ', step ', game_state['step'].toString()), x_offset + 5, y_offset + yGap)    
+
     game_state['action'].forEach(action => {
         ctx.fillStyle = game_state['players'][action[0]]['color']
         ctx.fillText(JSON.stringify(action), x_offset + 5, y_offset + actionIndex * yGap)
@@ -374,6 +384,10 @@ function setupMap(regions) {
 }
 
 function plantToString(plantNum) {
+    if (plantNum == 999) { // placeholder high card
+        return '999' // testing, should change to blank string
+    }
+
     if (plantNum == 333) { // phase 3 card
         return "333"
     } else { // not phase 3 card

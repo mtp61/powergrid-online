@@ -2,6 +2,7 @@ implemented
 before game
 !ready - go from spectate to player
 !start - starts game
+!regions - set regions
 
 in game
 !nominate - nominate plant for bidding, no arg for pass
@@ -10,10 +11,10 @@ in game
 !build - build cities, "1-2" is connection 1 to 2 and "2" is the city 2, order matters, no args is pass
 !power - list of plants to power, no args is pass on powering
 
+
 future
 needed
-
-
+!remove - when removing a plant, the number, can put resources after it if you want to specifiy the resources to remove, otherwise it will prioritze removing coal
+    e.g. !remove 12 c 1 o 1
 extra
-!regions - set regions
 

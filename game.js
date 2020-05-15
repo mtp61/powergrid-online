@@ -5,6 +5,8 @@ const restocks = require('./resources/restocks.js')
 const win_cities = require('./resources/win_cities.js')
 const phase2_cities = require('./resources/phase2_cities.js')
 
+const max_plants = 1 // testing
+
 class Game {
     constructor(gameName) {
         this.gameName = gameName;
@@ -18,7 +20,9 @@ class Game {
                            'action': [], 
                            "regions": [1, 2, 3, 4, 5, 6], 
                            "active": false, 
-                           "finished": false}
+                           "finished": false,
+                           "helpers": {}
+                        }
 
         this.default_colors = ["purple", "blue", "green", "red", "black", "orange"]
 
@@ -171,7 +175,7 @@ class Game {
                                         case '!nominate':
                                             if (args.length > 1) { // not passing
                                                 let nom = parseInt(args[1])
-                                                if (!isNaN(nom)) { // make sure is int
+                                                if (!isNaN(nom) && nom <= 50) { // make sure is int and not too big
                                                     // make sure the plant is in the market
                                                     let nomIndex = this.game_state['market'].indexOf(nom)
                                                     if (this.game_state['phase'] != 3) { // not phase 3
@@ -192,9 +196,16 @@ class Game {
                                                     }
 
                                                     // helpers
+                                                    if (this.game_state['helpers']['oneActive'] && nom == this.game_state['market'][0]) { // can use the one
+                                                        // bid
+                                                        this.helpers['lastBid'] = 1
+                                                        // update the one
+                                                        this.game_state['helpers']['oneActive'] = false
+                                                    } else {
+                                                        this.helpers['lastBid'] = nom
+                                                    }                                                    
                                                     this.helpers['currentPlant'] = nom
                                                     this.helpers['canBid'] = [...this.helpers['toNominate']]
-                                                    this.helpers['lastBid'] = nom
                                                     this.helpers['lastBidder'] = username
 
                                                     // reset action - this is ok because we aren't skipping to step 5 where we may have multiple
@@ -249,6 +260,72 @@ class Game {
 
                                                 // reset action
                                                 this.game_state['action'] = []
+                                            }
+                                            break;
+                                        case '!remove': // remove plant
+                                            // check args
+                                            if (args.length == 1) {
+                                                // todo
+                                            
+                                            
+                                                this.serverMessage('auto removing lowest plant - '.concat(    ))                                            
+                                            } else {
+                                                // check plant
+                                                if (!this.game_state['players'][username]['plants'].includes(parseInt(args[1]))) {
+                                                    this.serverMessage('dont have that plant')
+                                                    break
+                                                } else {
+                                                    // check other args
+                                                    if (args.length % 2 != 0) {
+                                                        this.serverMessage('incorrect number of args')
+                                                    } else {
+                                                        let toRemove = {'c': 0, 'o': 0, 't': 0, 'u': 0}
+                                                        let removeArgError = false
+                                                        for (let i = 2; i < args.length; i += 2) { // loop thru resource args
+                                                            if (!Object.keys(toRemove).includes(args[i])) {
+                                                                removeArgError = true
+                                                            } else {
+                                                                if (isNaN(args[i + 1])) {
+                                                                    removeArgError = true
+                                                                } else {
+                                                                    toRemove[args[i]] += parseInt(args[i + 1])
+                                                                }
+                                                            }                                                            
+                                                        }
+
+                                                        Object.keys(toRemove).forEach(res => {
+                                                            if (toRemove[res] > this.game_state['players'][username]['resources'][res]) {
+                                                                removeArgError = true
+                                                            }
+                                                            if (toRemove[res] < 0) { // no chetar shit
+                                                                removeArgError = true
+
+                                                                this.serverMessage('u thot u were a smarty bich but ur not') // meme
+                                                            }
+                                                        })
+
+                                                        if (removeArgError) {
+                                                            this.serverMessage('resource argument error')
+                                                            break
+                                                        } else {
+                                                            // remove the plant
+                                                            let plantIndex = this.game_state['players'][username]['plants'].indexOf(parseInt(args[1]))
+                                                            console.log(plantIndex)
+                                                            this.game_state['players'][username]['plants'].splice(plantIndex, 1)
+
+                                                            // remove the resources
+                                                            Object.keys(toRemove).forEach(res => {
+                                                                this.game_state['players'][username]['resources'][res] -= toRemove[res]
+                                                            })
+
+                                                            // update helpers
+                                                            this.helpers['hasRecycled'] = true
+
+                                                            // reset action
+                                                            this.game_state['action'] = []
+                                                        }
+                                                    }
+                                                }
                                             }
                                             break;
                                         case '!buy':
@@ -567,81 +644,77 @@ class Game {
                                 this.game_state['action'] = [[this.helpers['toNominate'][0], 'nominate']]
                             }
                         } else { // there is a plant
-                            if (this.helpers['canBid'].length == 1) { // only one person still in, they get it
-                                // recycle if needed todo make a new choose action
-
+                            if (this.helpers['canBid'].length == 1) { // only one person still in, they get it                              
+                                // recycle if needed
                                 let numPlants = this.game_state['players'][this.helpers['lastBidder']]['plants'].length
-                                if (numPlants == 3) { // need to recycle
-                                    let lowPlant = 100, lowIndex
-                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].forEach(plantNum => {
-                                        if (plantNum < lowPlant) {
-                                            lowPlant = plantNum
-                                        }
-                                        lowIndex = this.game_state['players'][this.helpers['lastBidder']]['plants'].indexOf(lowPlant)
-                                    })
-
-                                    // get rid of plant
-                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].splice(lowIndex, 1)
-                                    this.serverMessage('getting rid of lowest plant - '.concat(lowPlant)) // todo should show the number of the plant
+                                
+                                if (numPlants < max_plants) {
+                                    // give them the plant
+                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])               
                                 }
                                 
-                                // give them the plant
-                                this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])               
-                                
-                                // recycle resources if can't store
-                                if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
-                                    this.serverMessage('cant hold resources with new plant, getting rid of some')
-                                    
-                                    let playerPlants = this.game_state['players'][username]['plants']
-                                    let res = this.game_state['players'][username]['resources']
-                                    
-                                    let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
-                                    playerPlants.forEach(plantNum => {
-                                        let plantType = plants[plantNum]['type']
-                                        if (plantType != 'r') { // not renewable
-                                            capacity[plantType] += 2 * plants[plantNum]['in']
+                                if (numPlants == max_plants && !this.helpers['hasRecycled']) { // need to recycle
+                                    // give them the plant
+                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])               
+                                                                    
+                                    // update action w/ remove
+                                    this.game_state['action'].push([this.helpers['lastBidder'], "remove"])
+                                } else {
+                                    // recycle resources if can't store
+                                    if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
+                                        this.serverMessage('cant hold resources with new plant, getting rid of some')
+                                        
+                                        let playerPlants = this.game_state['players'][username]['plants']
+                                        let res = this.game_state['players'][username]['resources']
+                                        
+                                        let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
+                                        playerPlants.forEach(plantNum => {
+                                            let plantType = plants[plantNum]['type']
+                                            if (plantType != 'r') { // not renewable
+                                                capacity[plantType] += 2 * plants[plantNum]['in']
+                                            }
+                                        })
+
+                                        // t
+                                        if (res['t'] > capacity['t']) {
+                                            res['t'] = capacity['t']
                                         }
-                                    })
 
-                                    // t
-                                    if (res['t'] > capacity['t']) {
-                                        res['t'] = capacity['t']
+                                        // u 
+                                        if (res['u'] > capacity['u']) {
+                                            res['u'] = capacity['u']
+                                        }
+
+                                        // c
+                                        if (res['c'] > capacity['c'] + capacity['h']) {
+                                            res['c'] = capacity['c'] + capacity['h']
+                                        }
+
+                                        // o
+                                        if (res['o'] > capacity['o'] + capacity['h']) {
+                                            res['o'] = capacity['o'] + capacity['h']
+                                        }
+
+                                        // h
+                                        if (res['c'] + res['o'] > capacity['c'] + capacity['o'] + capacity['h']) {
+                                            res['o'] = capacity['c'] + capacity['o'] + capacity['h'] - res['c']
+                                        }                                        
                                     }
 
-                                    // u 
-                                    if (res['u'] > capacity['u']) {
-                                        res['u'] = capacity['u']
-                                    }
+                                    // update money
+                                    this.game_state['players'][this.helpers['lastBidder']]['money'] -= this.helpers['lastBid']
 
-                                    // c
-                                    if (res['c'] > capacity['c'] + capacity['h']) {
-                                        res['c'] = capacity['c'] + capacity['h']
-                                    }
+                                    // remove them from nominating
+                                    let lastBidderIndex = this.helpers['toNominate'].indexOf(this.helpers['lastBidder'])
+                                    this.helpers['toNominate'].splice(lastBidderIndex, 1)
 
-                                    // o
-                                    if (res['o'] > capacity['o'] + capacity['h']) {
-                                        res['o'] = capacity['o'] + capacity['h']
-                                    }
+                                    // remove plant, draw a new one
+                                    this.drawPlant(this.helpers['currentPlant'], false)
 
-                                    // h
-                                    if (res['c'] + res['o'] > capacity['c'] + capacity['o'] + capacity['h']) {
-                                        res['o'] = capacity['c'] + capacity['o'] + capacity['h'] - res['c']
-                                    }
+                                    // reset helpers
+                                    this.helpers['currentPlant'] = -1
+                                    this.helpers['hasRecycled'] = false
                                 }
-
-                                // update money
-                                this.game_state['players'][this.helpers['lastBidder']]['money'] -= this.helpers['lastBid']
-
-                                // remove them from nominating
-                                let lastBidderIndex = this.helpers['toNominate'].indexOf(this.helpers['lastBidder'])
-                                this.helpers['toNominate'].splice(lastBidderIndex, 1)
-
-                                // remove plant, draw a new one
-                                this.drawPlant(this.helpers['currentPlant'], false)
-
-                                // reset helpers
-                                this.helpers['currentPlant'] = -1
-
                             } else { // someone else needs to bid
                                 let lastBidIndex = this.helpers['canBid'].indexOf(this.helpers['lastBidder'])
                                 if (lastBidIndex == -1) {
@@ -770,6 +843,13 @@ class Game {
         this.helpers['canBid'] = []
         this.helpers['lastBid'] = -1
         this.helpers['lastBidder'] = ""
+        this.helpers['hasRecycled'] = false
+
+        if (this.game_state['phase'] != 3) { // only do the one in phase 1,2
+            this.game_state['helpers']['oneActive'] = true
+        } else {
+            this.game_state['helpers']['oneActive'] = false
+        }
     }
 
     setupHelpers3() {
@@ -836,20 +916,36 @@ class Game {
         let toRemoveIndex = this.game_state['market'].indexOf(toRemoveNumber)
         this.game_state['market'].splice(toRemoveIndex, 1)
 
-        if (this.plant_deck.length != 0) {
-            let newPlant = this.plant_deck.pop()    
-            
-            // insert into plants, mainting sort
-            for (let i = 0; i < this.game_state['market'].length; i++) {
-                if (newPlant < this.game_state['market'][i]) {
-                    this.game_state['market'].splice(i, 0, newPlant)
-                    return newPlant
-                }
+        // get max cities
+        let maxCities = 0
+        Object.keys(this.game_state['players']).forEach(username => {
+            if (Object.keys(this.game_state['players'][username]['cities']).length > maxCities) {
+                maxCities = Object.keys(this.game_state['players'][username]['cities']).length
             }
+        })
 
-            this.game_state['market'].push(newPlant) // put at end
-            return newPlant
-        }  
+        // draw a new plant
+        let needPlant = true
+        while (this.plant_deck.length != 0 && needPlant) {
+            let newPlant = this.plant_deck.pop()    
+        
+            if (newPlant <= maxCities) {
+                this.serverMessage('burning plant '.concat(newPlant, " from deck, lower than max cities"))
+            } else {
+                // insert into plants, mainting sort
+                for (let i = 0; i < this.game_state['market'].length; i++) {
+                    if (newPlant < this.game_state['market'][i]) {
+                        this.game_state['market'].splice(i, 0, newPlant)
+                        return newPlant
+                    }
+                }
+
+                this.game_state['market'].push(newPlant) // put at end
+                return newPlant
+            }
+        }
+
+        return 999
     }
 
     totalPrice(c, o, t, u) { // calculate the total price of a resource buy
@@ -975,10 +1071,20 @@ class Game {
                     this.serverMessage('phase 2')
 
                     // remove lowest plant
-                    this.drawPlant(this.game_state['market'][this.game_state['market'].length - 1], true)
+                    this.serverMessage('removing lowest plant: '.concat(this.game_state['market'][0]))
+                    this.drawPlant(this.game_state['market'][0], false)
                 }
             }
+            
+            // remove 1 plant
+            if (this.game_state['phase'] != 3) {
+                if (this.game_state['helpers']['oneActive']) {               
+                    this.serverMessage('one still active, removing lowest plant - '.concat(this.game_state['market'][0]))
 
+                    this.drawPlant(this.game_state['market'][0], false)
+                }
+            }
+            
             // earn cash
             Object.keys(this.game_state['players']).forEach(username => {
                 // add cash for the username based on number of plants
