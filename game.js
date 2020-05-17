@@ -7,9 +7,9 @@ const restocks = require('./resources/restocks.js')
 const win_cities = require('./resources/win_cities.js')
 const phase2_cities = require('./resources/phase2_cities.js')
 
-const max_plants = 3 // testing
+const max_plants = 3
 
-const min_players = 3 // testing
+const min_players = 1 // testing
 
 class Game {
     constructor(gameName) {
@@ -47,8 +47,16 @@ class Game {
     update() {
         this.game_state['messages'] = []
         
+        let messages_to_process = _.cloneDeep(this.message_queue)
+        this.message_queue = [] // reset queue
+
+        // add messages to game state
+        messages_to_process.forEach(message => { // add to game state
+            this.game_state['messages'].push(message['username'].concat(": ", message['message']))
+        })     
+
         // parse messages
-        this.message_queue.forEach(message => { // add to game state
+        messages_to_process.forEach(message => { // add to game state
             const m = message['message']
             const u = message['username']
             if (m.slice(0, 1) === "!") { // message is a command
@@ -690,11 +698,6 @@ class Game {
                 }
             }
         })
-        // process messages
-        this.message_queue.forEach(message => { // add to game state
-            this.game_state['messages'].push(message['username'].concat(": ", message['message']))
-        })
-        this.message_queue = [] // reset queue
 
         // if game active...
         if (this.game_state['active']) {
