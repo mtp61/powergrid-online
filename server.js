@@ -9,6 +9,8 @@ const passport = require('passport')
 const flash = require('express-flash')
 const session = require('express-session')
 const methodOverride = require('method-override')
+const favicon = require('serve-favicon');
+const path = require('path')
 
 // io
 const server = require('http').Server(app)
@@ -20,6 +22,9 @@ initializePassport(
   username => users.find(user => user.username === username),
   id => users.find(user => user.id === id)
 )
+
+// setup favicon
+app.use(favicon(path.join(__dirname,'public','images','favicon.ico')));
 
 const users = []
 
@@ -166,7 +171,7 @@ function checkNotAuthenticated(req, res, next) {
 
 // Setup the game
 const GameManager = require('./gameManager')
-const gameManager = new GameManager(4); // arg is tickrate
+const gameManager = new GameManager(16); // arg is tickrate
 
 function getGames() {
   return gameManager.getGameInfo()

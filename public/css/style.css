@@ -11,7 +11,7 @@ a {
 
 nav {
     width: 100vw;
-    background-color: lightblue;
+    background-color: rgb(157, 169, 105);
     padding: 2vw 0;
 }
 
@@ -22,7 +22,11 @@ ul {
 li {
     margin: 0 2vw;
     font-size: 3vh;
-    color: purple;
+    color: white;
+}
+
+li a {
+    color: white;
 }
 
 #login {
@@ -35,7 +39,7 @@ li {
     font-size: 3vh;
     font-size: 100%;
     font: inherit;
-    color: purple;
+    color: white;
     cursor: pointer;
 }
 

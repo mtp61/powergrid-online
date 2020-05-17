@@ -1,3 +1,5 @@
+const _ = require('lodash')
+
 const plants = require('./resources/plants.js')
 const power_money = require('./resources/power_money.js')
 const map = require('./resources/america.js')
@@ -6,6 +8,8 @@ const win_cities = require('./resources/win_cities.js')
 const phase2_cities = require('./resources/phase2_cities.js')
 
 const max_plants = 1 // testing
+
+const min_players = 1 // testing
 
 class Game {
     constructor(gameName) {
@@ -33,7 +37,9 @@ class Game {
         
         this.first_turn = true
 
-        this.logging = true
+        this.logging = false
+
+        this.showMoney = false
 
         this.helpers = {}
     }
@@ -63,13 +69,29 @@ class Game {
                             break
                         case "!ready":
                             if (!this.game_state['active'] && this.game_state['players'][u] == null && Object.keys(this.game_state['players']).length < 6) {
+                                // add to game state
                                 this.game_state['players'][u] = {}
+
+                                // get socket id from observer sockets
+                                let socket_id, socket
+                                Object.keys(this.observer_sockets).forEach(id => {
+                                    if (this.observer_sockets[id]['username'] === u) {
+                                        socket_id = id
+                                        socket = this.observer_sockets[id]['socket']
+                                    }
+                                })
+
+                                // add as player socket
+                                this.player_sockets[socket_id] = { 'socket': socket, 'username': username}
+
+                                // remove observer socket
+                                delete this.observer_sockets[socket_id]
+
                                 this.serverMessage(u.concat(" joined the game"))
                             }
                             break;
                         case "!start": 
-                        // todo change 1 to 3 once testing is done
-                            if (!this.game_state['active'] && Object.keys(this.game_state['players']).length >= 1) { // start the game
+                            if (!this.game_state['active'] && Object.keys(this.game_state['players']).length >= min_players) { // start the game
                                 console.log('game starting:', this.gameName)
 
                                 this.serverMessage("game starting")
@@ -77,7 +99,7 @@ class Game {
                                 // setup players
                                 Object.keys(this.game_state['players']).forEach(username => {
                                     let player_info = {}
-                                    
+                                                                        
                                     // color
                                     let randNum = Math.floor(Math.random() * this.default_colors.length)
                                     player_info['color'] = this.default_colors[randNum]
@@ -198,9 +220,12 @@ class Game {
                                                     // helpers
                                                     if (this.game_state['helpers']['oneActive'] && nom == this.game_state['market'][0]) { // can use the one
                                                         // bid
+
                                                         this.helpers['lastBid'] = 1
                                                         // update the one
                                                         this.game_state['helpers']['oneActive'] = false
+                                                        
+                                                        this.serverMessage('plant nominated for 1')
                                                     } else {
                                                         this.helpers['lastBid'] = nom
                                                     }                                                    
@@ -255,7 +280,7 @@ class Game {
                                                 }
                                                 this.helpers['canBid'].splice(bidderIndex, 1)
 
-                                                this.serverMessage(username.concat(' passed on bidding, ', this.helpers['canBid'].length, " bidders remaining"))
+                                                //this.serverMessage(username.concat(' passed on bidding, ', this.helpers['canBid'].length, " bidders remaining"))
                                                 this.log(username.concat(' pass, ', JSON.stringify(this.helpers))) // tesing
 
                                                 // reset action
@@ -265,10 +290,25 @@ class Game {
                                         case '!remove': // remove plant
                                             // check args
                                             if (args.length == 1) {
-                                                // todo
-                                            
-                                            
-                                                this.serverMessage('auto removing lowest plant - '.concat(    ))                                            
+                                                // get lowest plant
+                                                let lowPlant = 100
+                                                this.game_state['players'][username]['plants'].forEach(plantNum => {
+                                                    if (plantNum < lowPlant) {
+                                                        lowPlant = plantNum
+                                                    }
+                                                })
+
+                                                // remove it
+                                                let lowIndex = this.game_state['players'][username]['plants'].indexOf(lowPlant)
+                                                this.game_state['players'][username]['plants'].splice(lowIndex, 1)
+                                                
+                                                this.serverMessage('auto removing lowest plant - '.concat(lowPlant))
+                                                
+                                                // update helpers
+                                                this.helpers['hasRecycled'] = true
+
+                                                // reset action
+                                                this.game_state['action'] = []
                                             } else {
                                                 // check plant
                                                 if (!this.game_state['players'][username]['plants'].includes(parseInt(args[1]))) {
@@ -282,7 +322,7 @@ class Game {
                                                         let toRemove = {'c': 0, 'o': 0, 't': 0, 'u': 0}
                                                         let removeArgError = false
                                                         for (let i = 2; i < args.length; i += 2) { // loop thru resource args
-                                                            if (!Object.keys(toRemove).includes(args[i])) {
+                                                            if (!toRemove.hasOwnProperty(args[i])) {
                                                                 removeArgError = true
                                                             } else {
                                                                 if (isNaN(args[i + 1])) {
@@ -310,7 +350,6 @@ class Game {
                                                         } else {
                                                             // remove the plant
                                                             let plantIndex = this.game_state['players'][username]['plants'].indexOf(parseInt(args[1]))
-                                                            console.log(plantIndex)
                                                             this.game_state['players'][username]['plants'].splice(plantIndex, 1)
 
                                                             // remove the resources
@@ -497,26 +536,60 @@ class Game {
                                         case '!power':
                                             // probs want to restructure this
                                             let toPower = []
+                                            let hybridResources = {}
 
                                             // check args
                                             let error = false
-                                            if (args.length == 1) { // power as many as possible TODO
-                                                //toPower = [...this.game_state['players'][username]['plants']]
+                                            let onHybrid = false
+                                            let hybridNum
+                                            if (args.length == 1) { // passing on powering
                                                 toPower = []
                                             } else {
-                                                args.slice(1).forEach(plantNum => {
-                                                    if (!isNaN(plantNum)) { // is number
-                                                        if (this.game_state['players'][username]['plants'].includes(parseInt(plantNum))) {
-                                                            toPower.push(plantNum)
-                                                        } else {
+                                                for (let i = 1; i < args.length; i++) {
+                                                    if (!isNaN(args[i]) && args[i - 1] != 'c' && args[i - 1] != 'o') { // is a plant
+                                                        if (this.game_state['players'][username]['plants'].includes(parseInt(args[i]))) {
+                                                            if (!toPower.includes(parseInt(args[i]))) { // dont already have plant
+                                                                toPower.push(parseInt(args[i]))
+                                                                if (plants[parseInt(args[i])]['type'] == 'h') {
+                                                                    onHybrid = true
+                                                                    hybridNum = parseInt(args[i])
+                                                                } else {
+                                                                    onHybrid = false
+                                                                }
+                                                            } else {
+                                                                this.serverMessage('plant already included')
+                                                                error = true
+                                                            }
+                                                        } else if (!onHybrid) {
                                                             this.serverMessage('dont have plant')
                                                             error = true
                                                         }
+                                                    } else if (onHybrid) { // previous plant was a hybrid
+                                                        if (!isNaN(args[i])) { // is a number
+                                                            if (args[i - 1] == 'c' || args[i - 1] == 'o') {
+                                                                if (hybridResources[hybridNum] == null) { // initialize if haven't yet
+                                                                    hybridResources[hybridNum] = {'c': 0, 'o': 0}
+                                                                }
+                                                                hybridResources[hybridNum][args[i - 1]] += parseInt(args[i])
+                                                            } else {
+                                                                this.serverMessage('bad resource type')
+                                                                error = true
+                                                            }
+                                                        } else if (args[i] == 'c' || args[i] == 'o') {
+                                                            if (isNaN(parseInt(args[i + 1]))) {
+                                                                this.serverMessage('bad input...')
+                                                                error = true
+                                                            }
+                                                        } else {
+                                                            this.serverMessage('didnt recognize part of the hybrid input')
+                                                            error = true
+                                                        }
+                                                    
                                                     } else {
-                                                        this.serverMessage('non int input')
+                                                        this.serverMessage('bad input')
                                                         error = true
                                                     }
-                                                })                                       
+                                                }
                                             }
                                             if (error) {
                                                 break
@@ -530,26 +603,44 @@ class Game {
                                             let tempU = this.game_state['players'][username]['resources']['u']
                                             let tempH = 0
 
+                                            Object.keys(hybridResources).forEach(plantNum => {
+                                                let cPower = hybridResources[plantNum]['c']
+                                                let oPower = hybridResources[plantNum]['o']
+
+                                                if (cPower + oPower != plants[plantNum]['in']) { // not correct number of resources
+                                                    this.serverMessage('bad number of resources to power hybrid plant')
+                                                    error = true
+                                                }
+
+                                                tempC -= cPower
+                                                tempO -= oPower
+                                            })
+                                            if (error) {
+                                                break
+                                            }
+
                                             let numPowered = 0
                                             toPower.forEach(plantNum => {
                                                 numPowered += plants[plantNum]['out']
                                                 
-                                                switch (plants[plantNum]['type']) {
-                                                    case 'c':
-                                                        tempC -= plants[plantNum]['in']
-                                                        break
-                                                    case 'o':
-                                                        tempO -= plants[plantNum]['in']
-                                                        break
-                                                    case 't':
-                                                        tempT -= plants[plantNum]['in']
-                                                        break
-                                                    case 'u':
-                                                        tempU -= plants[plantNum]['in']
-                                                        break
-                                                    case 'h':
-                                                        tempH -= plants[plantNum]['in']
-                                                        break
+                                                if (!hybridResources.hasOwnProperty(plantNum)) { // have already dealt with special hybrids
+                                                    switch (plants[plantNum]['type']) {
+                                                        case 'c':
+                                                            tempC -= plants[plantNum]['in']
+                                                            break
+                                                        case 'o':
+                                                            tempO -= plants[plantNum]['in']
+                                                            break
+                                                        case 't':
+                                                            tempT -= plants[plantNum]['in']
+                                                            break
+                                                        case 'u':
+                                                            tempU -= plants[plantNum]['in']
+                                                            break
+                                                        case 'h':
+                                                            tempH -= plants[plantNum]['in']
+                                                            break
+                                                    }
                                                 }
                                             })
 
@@ -569,6 +660,11 @@ class Game {
                                             this.helpers['toPower'].splice(toPowerIndex, 1)
                                             this.helpers['numPowered'][username] = numPowered
                                             this.helpers['plantsPowered'][username] = [...toPower]
+                                            Object.keys(hybridResources).forEach(plantNum => {
+                                                let hC = hybridResources[plantNum]['c']
+                                                let hO = hybridResources[plantNum]['o']
+                                                this.helpers['hybridResources'][username][plantNum] = {'c': hC, 'o': hO}
+                                            })
                     
                                             // reset action - need to be careful on this one
                                             let actionIndex
@@ -664,9 +760,9 @@ class Game {
                                     if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
                                         this.serverMessage('cant hold resources with new plant, getting rid of some')
                                         
-                                        let playerPlants = this.game_state['players'][username]['plants']
-                                        let res = this.game_state['players'][username]['resources']
-                                        
+                                        let playerPlants = this.game_state['players'][this.helpers['lastBidder']]['plants']
+                                        let res = this.game_state['players'][this.helpers['lastBidder']]['resources']
+                                                                            
                                         let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
                                         playerPlants.forEach(plantNum => {
                                             let plantType = plants[plantNum]['type']
@@ -674,7 +770,7 @@ class Game {
                                                 capacity[plantType] += 2 * plants[plantNum]['in']
                                             }
                                         })
-
+                                   
                                         // t
                                         if (res['t'] > capacity['t']) {
                                             res['t'] = capacity['t']
@@ -698,7 +794,7 @@ class Game {
                                         // h
                                         if (res['c'] + res['o'] > capacity['c'] + capacity['o'] + capacity['h']) {
                                             res['o'] = capacity['c'] + capacity['o'] + capacity['h'] - res['c']
-                                        }                                        
+                                        } 
                                     }
 
                                     // update money
@@ -799,17 +895,48 @@ class Game {
 
         // send game states
         // need to do this even if not active because game state contains message info
-        Object.keys(this.player_sockets).forEach(socket_id => {
-            this.player_sockets[socket_id]['socket'].emit('game_state', this.game_state)
-        })
+        
+        if (this.showMoney) { // if show money
+            // send to players
+            Object.keys(this.player_sockets).forEach(socket_id => {
+                this.player_sockets[socket_id]['socket'].emit('game_state', this.game_state)
+            })
 
-        Object.keys(this.observer_sockets).forEach(socket_id => {
-            this.observer_sockets[socket_id]['socket'].emit('game_state', this.game_state)
-        })
+            // send to observers
+            Object.keys(this.observer_sockets).forEach(socket_id => {
+                this.observer_sockets[socket_id]['socket'].emit('game_state', this.game_state)
+            })
+        } else { // dont show money
+            let hidden_game_state = _.cloneDeep(this.game_state)
+
+            // hide each players money
+            Object.keys(hidden_game_state['players']).forEach(username => {
+                hidden_game_state['players'][username]['money'] = "---"
+            })
+
+            // send to players
+            Object.keys(this.player_sockets).forEach(socket_id => {
+                let username = this.player_sockets[socket_id]['username']
+
+                // unhide money
+                hidden_game_state['players'][username]['money'] = this.game_state['players'][username]['money']
+
+                // send
+                this.player_sockets[socket_id]['socket'].emit('game_state', hidden_game_state)
+            
+                // rehide money
+                hidden_game_state['players'][username]['money'] = '---'
+            })
+
+            // send to observers
+            Object.keys(this.observer_sockets).forEach(socket_id => {
+                this.observer_sockets[socket_id]['socket'].emit('game_state', hidden_game_state)
+            })
+        }
     }
 
     newConnection(socket, username) {
-        if (this.game_state['active'] && this.game_state['players'][username] != null) {
+        if (this.game_state['active'] && Object.keys(this.game_state['players']).includes(username)) {
             this.player_sockets[socket.id] = { 'socket': socket, 'username': username }
         } else {
             this.observer_sockets[socket.id] = { 'socket': socket, 'username': username }
@@ -870,9 +997,11 @@ class Game {
         this.helpers['toPower'] = [...this.game_state['order']] // won't actually go in order
         this.helpers['numPowered'] = {} // number of cities powered
         this.helpers['plantsPowered'] = {} // plants powered for each user
+        this.helpers['hybridResources'] = {} // resource selection for hybrid plants
         this.helpers['toPower'].forEach(username => { // setup numPowered and plantsPowered
             this.helpers['numPowered'][username] = 0
             this.helpers['plantsPowered'][username] = []
+            this.helpers['hybridResources'][username] = {}
         })
     }
 
@@ -1056,6 +1185,15 @@ class Game {
 
             this.serverMessage(win_username.concat(' won the game'))
         } else { // do normal bur
+            // remove 1 plant
+            if (this.game_state['phase'] != 3) {
+                if (this.game_state['helpers']['oneActive']) {               
+                    this.serverMessage('one still active, removing lowest plant - '.concat(this.game_state['market'][0]))
+
+                    this.drawPlant(this.game_state['market'][0], false)
+                }
+            }
+
             // check phase 2
             if (this.game_state['phase'] == 1) { // if phase 1
                 let phase2Cities = phase2_cities[numPlayers] // numplayers should already be defined
@@ -1075,16 +1213,7 @@ class Game {
                     this.drawPlant(this.game_state['market'][0], false)
                 }
             }
-            
-            // remove 1 plant
-            if (this.game_state['phase'] != 3) {
-                if (this.game_state['helpers']['oneActive']) {               
-                    this.serverMessage('one still active, removing lowest plant - '.concat(this.game_state['market'][0]))
-
-                    this.drawPlant(this.game_state['market'][0], false)
-                }
-            }
-            
+                           
             // earn cash
             Object.keys(this.game_state['players']).forEach(username => {
                 // add cash for the username based on number of plants
@@ -1092,28 +1221,33 @@ class Game {
 
                 let hPlants = []
                 // spend plant resources
-                this.helpers['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant
-                    switch (plants[plantNum]['type']) {
-                        case 'c':
-                            this.game_state['players'][username]['resources']['c'] -= plants[plantNum]['in']
-                            break
-                        case 'o':
-                            this.game_state['players'][username]['resources']['o'] -= plants[plantNum]['in']
-                            break
-                        case 't':
-                            this.game_state['players'][username]['resources']['t'] -= plants[plantNum]['in']
-                            break
-                        case 'u':
-                            this.game_state['players'][username]['resources']['u'] -= plants[plantNum]['in']
-                            break
-                        case 'r':
-                            // don't need to do anything for renewable
-                            break
-                        case 'h':
-                            hPlants.push(plantNum)
-                            break
-                        default:
-                            this.serverMessage("shouldn't be here db")
+                this.helpers['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant                    
+                    if (this.helpers['hybridResources'][username].hasOwnProperty(plantNum)) { // have special hybrid resoucres specified
+                        this.game_state['players'][username]['resources']['c'] -= this.helpers['hybridResources'][username][plantNum]['c']
+                        this.game_state['players'][username]['resources']['o'] -= this.helpers['hybridResources'][username][plantNum]['o']
+                    } else { // do the normal thing
+                        switch (plants[plantNum]['type']) {
+                            case 'c':
+                                this.game_state['players'][username]['resources']['c'] -= plants[plantNum]['in']
+                                break
+                            case 'o':
+                                this.game_state['players'][username]['resources']['o'] -= plants[plantNum]['in']
+                                break
+                            case 't':
+                                this.game_state['players'][username]['resources']['t'] -= plants[plantNum]['in']
+                                break
+                            case 'u':
+                                this.game_state['players'][username]['resources']['u'] -= plants[plantNum]['in']
+                                break
+                            case 'r':
+                                // don't need to do anything for renewable
+                                break
+                            case 'h':
+                                hPlants.push(plantNum)
+                                break
+                            default:
+                                this.serverMessage("shouldn't be here db")
+                        }
                     }
                 })
 

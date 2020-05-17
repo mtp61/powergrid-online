@@ -243,7 +243,7 @@ function drawInfo(x_offset, y_offset, width, height, game_state) {
         ctx.fillText(numCities.toString().concat(' cities'), x_offset + 110, y_offset + playerIndex * yGap)
         ctx.fillText("$".concat(money.toString()), x_offset + 165, y_offset + playerIndex * yGap)
         ctx.fillText(plantStr, x_offset + 200, y_offset + playerIndex * yGap)
-        ctx.fillText(JSON.stringify(game_state['players'][username]['resources']).slice(1, -1), x_offset + 400, y_offset + playerIndex * yGap)
+        ctx.fillText(JSON.stringify(game_state['players'][username]['resources']).slice(1, -1), x_offset + 450, y_offset + playerIndex * yGap)
 
         playerIndex++
     })
@@ -296,6 +296,12 @@ function drawPlants(x_offset, y_offset, width, height, game_state) {
                 default:
                     ctx.fillStyle = "black"
             }
+        }
+        
+        if (game_state['phase'] != 3 && plantNum == game_state['market'][4]) { // draw a new line between the halves of the market
+            // draw the break
+            ctx.fillText("", x_offset, plantIndex * yGap + y_offset)
+            plantIndex++
         }
 
         // draw the text
