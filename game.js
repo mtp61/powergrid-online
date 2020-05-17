@@ -7,9 +7,9 @@ const restocks = require('./resources/restocks.js')
 const win_cities = require('./resources/win_cities.js')
 const phase2_cities = require('./resources/phase2_cities.js')
 
-const max_plants = 1 // testing
+const max_plants = 3 // testing
 
-const min_players = 1 // testing
+const min_players = 3 // testing
 
 class Game {
     constructor(gameName) {
