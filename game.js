@@ -1,5 +1,3 @@
-// dev version
-
 const _ = require('lodash')
 
 const plants = require('./resources/plants.js')
