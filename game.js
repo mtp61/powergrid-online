@@ -40,8 +40,6 @@ class Game {
         this.logging = false
 
         this.showMoney = false
-
-        this.helpers = {}
     }
 
     update() {
@@ -229,17 +227,17 @@ class Game {
                                                     if (this.game_state['helpers']['oneActive'] && nom == this.game_state['market'][0]) { // can use the one
                                                         // bid
 
-                                                        this.helpers['lastBid'] = 1
+                                                        this.game_state['helpers']['lastBid'] = 1
                                                         // update the one
                                                         this.game_state['helpers']['oneActive'] = false
                                                         
                                                         this.serverMessage('plant nominated for 1')
                                                     } else {
-                                                        this.helpers['lastBid'] = nom
+                                                        this.game_state['helpers']['lastBid'] = nom
                                                     }                                                    
-                                                    this.helpers['currentPlant'] = nom
-                                                    this.helpers['canBid'] = [...this.helpers['toNominate']]
-                                                    this.helpers['lastBidder'] = username
+                                                    this.game_state['helpers']['currentPlant'] = nom
+                                                    this.game_state['helpers']['canBid'] = [...this.game_state['helpers']['toNominate']]
+                                                    this.game_state['helpers']['lastBidder'] = username
 
                                                     // reset action - this is ok because we aren't skipping to step 5 where we may have multiple
                                                     this.game_state['action'] = []
@@ -251,7 +249,7 @@ class Game {
                                                 }
 
                                                 // helpers, remove from toNom
-                                                this.helpers['toNominate'].splice(0, 1)
+                                                this.game_state['helpers']['toNominate'].splice(0, 1)
 
                                                 // reset action
                                                 this.game_state['action'] = []
@@ -262,7 +260,7 @@ class Game {
                                                 let bid = parseInt(args[1])
                                                 if (!isNaN(bid)) {// bid is a number 
                                                     // check if bid is greater than previous
-                                                    if (bid <= this.helpers['lastBid']) {
+                                                    if (bid <= this.game_state['helpers']['lastBid']) {
                                                         this.serverMessage('bid less than previous')
                                                         break
                                                     }
@@ -273,8 +271,8 @@ class Game {
                                                         break
                                                     }
                                                     // update helpers
-                                                    this.helpers['lastBid'] = bid
-                                                    this.helpers['lastBidder'] = username
+                                                    this.game_state['helpers']['lastBid'] = bid
+                                                    this.game_state['helpers']['lastBidder'] = username
 
                                                     // reset action
                                                     this.game_state['action'] = []
@@ -282,14 +280,14 @@ class Game {
                                                 }
                                             } else { // passing
                                                 // helpers, remove from canbid
-                                                let bidderIndex = this.helpers['canBid'].indexOf(username)
+                                                let bidderIndex = this.game_state['helpers']['canBid'].indexOf(username)
                                                 if (bidderIndex == -1) { // testing
-                                                    this.log('bid passing error'.concat(' ', JSON.stringify(this.helpers)))
+                                                    this.log('bid passing error'.concat(' ', JSON.stringify(this.game_state['helpers'])))
                                                 }
-                                                this.helpers['canBid'].splice(bidderIndex, 1)
+                                                this.game_state['helpers']['canBid'].splice(bidderIndex, 1)
 
-                                                //this.serverMessage(username.concat(' passed on bidding, ', this.helpers['canBid'].length, " bidders remaining"))
-                                                this.log(username.concat(' pass, ', JSON.stringify(this.helpers))) // tesing
+                                                //this.serverMessage(username.concat(' passed on bidding, ', this.game_state['helpers']['canBid'].length, " bidders remaining"))
+                                                this.log(username.concat(' pass, ', JSON.stringify(this.game_state['helpers']))) // tesing
 
                                                 // reset action
                                                 this.game_state['action'] = []
@@ -313,7 +311,7 @@ class Game {
                                                 this.serverMessage('auto removing lowest plant - '.concat(lowPlant))
                                                 
                                                 // update helpers
-                                                this.helpers['hasRecycled'] = true
+                                                this.game_state['helpers']['hasRecycled'] = true
 
                                                 // reset action
                                                 this.game_state['action'] = []
@@ -366,7 +364,7 @@ class Game {
                                                             })
 
                                                             // update helpers
-                                                            this.helpers['hasRecycled'] = true
+                                                            this.game_state['helpers']['hasRecycled'] = true
 
                                                             // reset action
                                                             this.game_state['action'] = []
@@ -434,8 +432,8 @@ class Game {
                                                         this.game_state['players'][username]['money'] -= cost
                                                         
                                                         // update helpers
-                                                        let toBuyIndex = this.helpers['toBuy'].indexOf(username)
-                                                        this.helpers['toBuy'].splice(toBuyIndex, 1)
+                                                        let toBuyIndex = this.game_state['helpers']['toBuy'].indexOf(username)
+                                                        this.game_state['helpers']['toBuy'].splice(toBuyIndex, 1)
 
                                                         // reset action
                                                         this.game_state['action'] = []
@@ -534,8 +532,8 @@ class Game {
                                             this.game_state['players'][username]['money'] -= buildCost
 
                                             // update helpers
-                                            let toBuildIndex = this.helpers['toBuild'].indexOf(username)
-                                            this.helpers['toBuild'].splice(toBuildIndex, 1)
+                                            let toBuildIndex = this.game_state['helpers']['toBuild'].indexOf(username)
+                                            this.game_state['helpers']['toBuild'].splice(toBuildIndex, 1)
 
                                             // reset action
                                             this.game_state['action'] = []
@@ -664,14 +662,14 @@ class Game {
                                             }
 
                                             // update helpers
-                                            let toPowerIndex = this.helpers['toPower'].indexOf(username)
-                                            this.helpers['toPower'].splice(toPowerIndex, 1)
-                                            this.helpers['numPowered'][username] = numPowered
-                                            this.helpers['plantsPowered'][username] = [...toPower]
+                                            let toPowerIndex = this.game_state['helpers']['toPower'].indexOf(username)
+                                            this.game_state['helpers']['toPower'].splice(toPowerIndex, 1)
+                                            this.game_state['helpers']['numPowered'][username] = numPowered
+                                            this.game_state['helpers']['plantsPowered'][username] = [...toPower]
                                             Object.keys(hybridResources).forEach(plantNum => {
                                                 let hC = hybridResources[plantNum]['c']
                                                 let hO = hybridResources[plantNum]['o']
-                                                this.helpers['hybridResources'][username][plantNum] = {'c': hC, 'o': hO}
+                                                this.game_state['helpers']['hybridResources'][username][plantNum] = {'c': hC, 'o': hO}
                                             })
                     
                                             // reset action - need to be careful on this one
@@ -732,39 +730,39 @@ class Game {
                     break;
                 case 2: // buy plants
                     if (this.game_state['action'].length == 0) { // no action
-                        if (this.helpers['currentPlant'] == -1) { // no plant
-                            if (this.helpers['toNominate'].length == 0) { // no one can nominate
+                        if (this.game_state['helpers']['currentPlant'] == -1) { // no plant
+                            if (this.game_state['helpers']['toNominate'].length == 0) { // no one can nominate
                                 this.log("plants done")
                                 this.serverMessage("step 2 done")
                                 this.game_state['step'] = 3
                                 this.setupHelpers3()
                                 this.checkPhase3()
                             } else { // someone can nominate a plant
-                                this.game_state['action'] = [[this.helpers['toNominate'][0], 'nominate']]
+                                this.game_state['action'] = [[this.game_state['helpers']['toNominate'][0], 'nominate']]
                             }
                         } else { // there is a plant
-                            if (this.helpers['canBid'].length == 1) { // only one person still in, they get it                              
+                            if (this.game_state['helpers']['canBid'].length == 1) { // only one person still in, they get it                              
                                 // recycle if needed
-                                let numPlants = this.game_state['players'][this.helpers['lastBidder']]['plants'].length
+                                let numPlants = this.game_state['players'][this.game_state['helpers']['lastBidder']]['plants'].length
                                 
                                 if (numPlants < max_plants) {
                                     // give them the plant
-                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])               
+                                    this.game_state['players'][this.game_state['helpers']['lastBidder']]['plants'].push(this.game_state['helpers']['currentPlant'])               
                                 }
                                 
-                                if (numPlants == max_plants && !this.helpers['hasRecycled']) { // need to recycle
+                                if (numPlants == max_plants && !this.game_state['helpers']['hasRecycled']) { // need to recycle
                                     // give them the plant
-                                    this.game_state['players'][this.helpers['lastBidder']]['plants'].push(this.helpers['currentPlant'])               
+                                    this.game_state['players'][this.game_state['helpers']['lastBidder']]['plants'].push(this.game_state['helpers']['currentPlant'])               
                                                                     
                                     // update action w/ remove
-                                    this.game_state['action'].push([this.helpers['lastBidder'], "remove"])
+                                    this.game_state['action'].push([this.game_state['helpers']['lastBidder'], "remove"])
                                 } else {
                                     // recycle resources if can't store
-                                    if (!this.canHold(this.helpers['lastBidder'], 0, 0, 0, 0)) {
+                                    if (!this.canHold(this.game_state['helpers']['lastBidder'], 0, 0, 0, 0)) {
                                         this.serverMessage('cant hold resources with new plant, getting rid of some')
                                         
-                                        let playerPlants = this.game_state['players'][this.helpers['lastBidder']]['plants']
-                                        let res = this.game_state['players'][this.helpers['lastBidder']]['resources']
+                                        let playerPlants = this.game_state['players'][this.game_state['helpers']['lastBidder']]['plants']
+                                        let res = this.game_state['players'][this.game_state['helpers']['lastBidder']]['resources']
                                                                             
                                         let capacity = {'c': 0, 'o': 0, 't': 0, 'u': 0, 'h': 0}
                                         playerPlants.forEach(plantNum => {
@@ -801,29 +799,29 @@ class Game {
                                     }
 
                                     // update money
-                                    this.game_state['players'][this.helpers['lastBidder']]['money'] -= this.helpers['lastBid']
+                                    this.game_state['players'][this.game_state['helpers']['lastBidder']]['money'] -= this.game_state['helpers']['lastBid']
 
                                     // remove them from nominating
-                                    let lastBidderIndex = this.helpers['toNominate'].indexOf(this.helpers['lastBidder'])
-                                    this.helpers['toNominate'].splice(lastBidderIndex, 1)
+                                    let lastBidderIndex = this.game_state['helpers']['toNominate'].indexOf(this.game_state['helpers']['lastBidder'])
+                                    this.game_state['helpers']['toNominate'].splice(lastBidderIndex, 1)
 
                                     // remove plant, draw a new one
-                                    this.drawPlant(this.helpers['currentPlant'], false)
+                                    this.drawPlant(this.game_state['helpers']['currentPlant'], false)
 
                                     // reset helpers
-                                    this.helpers['currentPlant'] = -1
-                                    this.helpers['hasRecycled'] = false
+                                    this.game_state['helpers']['currentPlant'] = -1
+                                    this.game_state['helpers']['hasRecycled'] = false
                                 }
                             } else { // someone else needs to bid
-                                let lastBidIndex = this.helpers['canBid'].indexOf(this.helpers['lastBidder'])
+                                let lastBidIndex = this.game_state['helpers']['canBid'].indexOf(this.game_state['helpers']['lastBidder'])
                                 if (lastBidIndex == -1) {
-                                    console.log('theres a bug here'.concat(JSON.stringify(this.helpers))) // testing
+                                    console.log('theres a bug here'.concat(JSON.stringify(this.game_state['helpers']))) // testing
                                 }
                                 let nextBidder
-                                if (lastBidIndex + 1 == this.helpers['canBid'].length) {
-                                    nextBidder = this.helpers['canBid'][0]
+                                if (lastBidIndex + 1 == this.game_state['helpers']['canBid'].length) {
+                                    nextBidder = this.game_state['helpers']['canBid'][0]
                                 } else {
-                                    nextBidder = this.helpers['canBid'][lastBidIndex + 1]
+                                    nextBidder = this.game_state['helpers']['canBid'][lastBidIndex + 1]
                                 }
                                 
                                 this.game_state['action'] = [[nextBidder, 'bid']]
@@ -843,15 +841,15 @@ class Game {
                     }
                     
                     if (this.game_state['action'].length == 0) { // no action
-                        if (this.helpers['toBuy'].length == 0) { // everyone already bought
+                        if (this.game_state['helpers']['toBuy'].length == 0) { // everyone already bought
                             this.serverMessage('step 3 done')
                             this.game_state['step'] = 4
                             this.setupHelpers4()
                         } else { // next person buys
-                            let nextBuyIndex = this.helpers['toBuy'].length - 1
+                            let nextBuyIndex = this.game_state['helpers']['toBuy'].length - 1
                             
                             // add to action
-                            this.game_state['action'].push([this.helpers['toBuy'][nextBuyIndex], 'buy'])
+                            this.game_state['action'].push([this.game_state['helpers']['toBuy'][nextBuyIndex], 'buy'])
                         }
                     }
                     // rest while action exists                    
@@ -859,15 +857,15 @@ class Game {
                     break;
                 case 4: // build cities
                     if (this.game_state['action'].length == 0) { // no action
-                        if (this.helpers['toBuild'].length == 0) { // everyone already built
+                        if (this.game_state['helpers']['toBuild'].length == 0) { // everyone already built
                             this.serverMessage('step 4 done')
                             this.game_state['step'] = 5
                             this.setupHelpers5()
                         } else { // next person builds
-                            let nextBuildIndex = this.helpers['toBuild'].length - 1
+                            let nextBuildIndex = this.game_state['helpers']['toBuild'].length - 1
                             
                             // add to action
-                            this.game_state['action'].push([this.helpers['toBuild'][nextBuildIndex], 'build'])
+                            this.game_state['action'].push([this.game_state['helpers']['toBuild'][nextBuildIndex], 'build'])
                         }
                     }
                     // rest while action exists                    
@@ -878,7 +876,7 @@ class Game {
 
                     // check if action
                     if (this.game_state['action'].length == 0) { // no action
-                        if (this.helpers['toPower'].length == 0) { // all players have powered
+                        if (this.game_state['helpers']['toPower'].length == 0) { // all players have powered
                             this.doBureaucracy()
                             if (this.first_turn) {
                                 this.first_turn = false
@@ -886,7 +884,7 @@ class Game {
                             this.game_state['step'] = 1
                             this.serverMessage('step 5 done')
                         } else { // still need to setup actions
-                            this.helpers['toPower'].forEach(username => {
+                            this.game_state['helpers']['toPower'].forEach(username => {
                                 this.game_state['action'].push([username, 'power'])
                             })
                         }
@@ -966,14 +964,14 @@ class Game {
 
     // game functions
     setupHelpers2() {
-        this.helpers = {} // reset helpers
+        this.game_state['helpers'] = {} // reset helpers
 
-        this.helpers['toNominate'] = [...this.game_state['order']] // nominate in order
-        this.helpers['currentPlant'] = -1 
-        this.helpers['canBid'] = []
-        this.helpers['lastBid'] = -1
-        this.helpers['lastBidder'] = ""
-        this.helpers['hasRecycled'] = false
+        this.game_state['helpers']['toNominate'] = [...this.game_state['order']] // nominate in order
+        this.game_state['helpers']['currentPlant'] = -1 
+        this.game_state['helpers']['canBid'] = []
+        this.game_state['helpers']['lastBid'] = -1
+        this.game_state['helpers']['lastBidder'] = ""
+        this.game_state['helpers']['hasRecycled'] = false
 
         if (this.game_state['phase'] != 3) { // only do the one in phase 1,2
             this.game_state['helpers']['oneActive'] = true
@@ -983,28 +981,28 @@ class Game {
     }
 
     setupHelpers3() {
-        this.helpers = {} // reset helpers
+        this.game_state['helpers'] = {} // reset helpers
 
-        this.helpers['toBuy'] = [...this.game_state['order']]
+        this.game_state['helpers']['toBuy'] = [...this.game_state['order']]
     }
 
     setupHelpers4() {
-        this.helpers = {} // reset helpers
+        this.game_state['helpers'] = {} // reset helpers
 
-        this.helpers['toBuild'] = [...this.game_state['order']]
+        this.game_state['helpers']['toBuild'] = [...this.game_state['order']]
     }
 
     setupHelpers5() {
-        this.helpers = {} // reset helpers
+        this.game_state['helpers'] = {} // reset helpers
 
-        this.helpers['toPower'] = [...this.game_state['order']] // won't actually go in order
-        this.helpers['numPowered'] = {} // number of cities powered
-        this.helpers['plantsPowered'] = {} // plants powered for each user
-        this.helpers['hybridResources'] = {} // resource selection for hybrid plants
-        this.helpers['toPower'].forEach(username => { // setup numPowered and plantsPowered
-            this.helpers['numPowered'][username] = 0
-            this.helpers['plantsPowered'][username] = []
-            this.helpers['hybridResources'][username] = {}
+        this.game_state['helpers']['toPower'] = [...this.game_state['order']] // won't actually go in order
+        this.game_state['helpers']['numPowered'] = {} // number of cities powered
+        this.game_state['helpers']['plantsPowered'] = {} // plants powered for each user
+        this.game_state['helpers']['hybridResources'] = {} // resource selection for hybrid plants
+        this.game_state['helpers']['toPower'].forEach(username => { // setup numPowered and plantsPowered
+            this.game_state['helpers']['numPowered'][username] = 0
+            this.game_state['helpers']['plantsPowered'][username] = []
+            this.game_state['helpers']['hybridResources'][username] = {}
         })
     }
 
@@ -1177,7 +1175,7 @@ class Game {
             let win_username = ""
             let win_score = -1
             Object.keys(this.game_state['players']).forEach(username => {
-                let numPowered = this.helpers['numPowered'][username]
+                let numPowered = this.game_state['helpers']['numPowered'][username]
                 let money = this.game_state['players'][username]['money']
                 let playerScore = numPowered * 1000 + money
                 if (playerScore > win_score) {
@@ -1220,14 +1218,14 @@ class Game {
             // earn cash
             Object.keys(this.game_state['players']).forEach(username => {
                 // add cash for the username based on number of plants
-                this.game_state['players'][username]['money'] += power_money[this.helpers['numPowered'][username]]
+                this.game_state['players'][username]['money'] += power_money[this.game_state['helpers']['numPowered'][username]]
 
                 let hPlants = []
                 // spend plant resources
-                this.helpers['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant                    
-                    if (this.helpers['hybridResources'][username].hasOwnProperty(plantNum)) { // have special hybrid resoucres specified
-                        this.game_state['players'][username]['resources']['c'] -= this.helpers['hybridResources'][username][plantNum]['c']
-                        this.game_state['players'][username]['resources']['o'] -= this.helpers['hybridResources'][username][plantNum]['o']
+                this.game_state['helpers']['plantsPowered'][username].forEach(plantNum => {  // spend for each fired plant                    
+                    if (this.game_state['helpers']['hybridResources'][username].hasOwnProperty(plantNum)) { // have special hybrid resoucres specified
+                        this.game_state['players'][username]['resources']['c'] -= this.game_state['helpers']['hybridResources'][username][plantNum]['c']
+                        this.game_state['players'][username]['resources']['o'] -= this.game_state['helpers']['hybridResources'][username][plantNum]['o']
                     } else { // do the normal thing
                         switch (plants[plantNum]['type']) {
                             case 'c':
