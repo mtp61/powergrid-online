@@ -93,6 +93,7 @@ server.listen(3331)
 // socket io shit
 io.on('connection', socket => {
   socket.on('index_connection', onConnectIndex)
+
   socket.on('game_connection', onConnectGame)
 
   socket.on('chat-message', onMessage)
@@ -138,22 +139,11 @@ app.get('/:game', (req, res) => {
   if (req.isAuthenticated()) {
     username = req.user.username
   } else {
-    username = 'anon-'.concat(randHex(8)) // todo rand str
+    username = randUser() // get a random username
   }
   res.render('game.ejs', { gameName: req.params.game, username: username })
 })
 
-function randHex(len) {
-  const maxlen = 16,
-    min = Math.pow(16,Math.min(len,maxlen)-1),
-    max = Math.pow(16,Math.min(len,maxlen)) - 1,
-    n   = Math.floor( Math.random() * (max-min+1) ) + min,
-    r   = n.toString(16);
-  while ( r.length < len ) {
-     r = r + randHex( len - maxlen );
-  }
-  return r;
-}
 
 function checkAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
@@ -175,4 +165,33 @@ const gameManager = new GameManager(16); // arg is tickrate
 
 function getGames() {
   return gameManager.getGameInfo()
+}
+
+function randUser() { // generate a random username
+  // return 'anon-'.concat(randHex(8)) // old simple
+  
+  // todo move this to a seperate file
+  const name_1_options = ['Raze', 'MMC', "CiW", "Astralis", "Cloud9", 'Booler', 'Big Bot', 'Ragger',
+                      'KiS^', "PIMP", 'pan fried', 'Ojibwe Chief', 'cs.money']
+  const name_2_options = ['Rival', 'JWorlds', 'metra', 'jonathanp', 'Jetboost', 'Lakes', 'Oubre', 
+                    'Macaw', 'y tho', 'Ninja', 'Zebruh', 'Box']
+  
+
+  let name_1 = name_1_options[Math.floor(Math.random() * name_1_options.length)]
+  let name_2 = name_2_options[Math.floor(Math.random() * name_2_options.length)]
+  let name_3 = Math.floor(Math.random() * 100)
+
+  return name_1.concat(' ', name_2, name_3)
+}
+
+function randHex(len) { // only used for generating simple usernames
+  const maxlen = 16,
+    min = Math.pow(16,Math.min(len,maxlen)-1),
+    max = Math.pow(16,Math.min(len,maxlen)) - 1,
+    n   = Math.floor( Math.random() * (max-min+1) ) + min,
+    r   = n.toString(16);
+  while ( r.length < len ) {
+     r = r + randHex( len - maxlen );
+  }
+  return r;
 }

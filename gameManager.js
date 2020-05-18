@@ -10,12 +10,16 @@ class GameManager {
     }
 
     tick() {
+        // check to see if there are any games that have no users
+        // todo
+
+        // check to see if there are finished games
+        // todo
+
         // update games
         Object.keys(this.games).forEach(gameName => {
             this.games[gameName].update()
         })
-
-        // console.log('tick')
     }
 
     newGame(gameName) {
@@ -51,7 +55,6 @@ class GameManager {
     }
 
     gameConnection(socket, gameName, username) {
-        //console.log('game', gameName, 'socket connect:', socket.id, username)
         this.games[gameName].newConnection(socket, username)
         this.games[gameName].serverMessage(username.concat(" connected"))
     }
@@ -59,7 +62,6 @@ class GameManager {
     removeConnection(socket) {
         // check if in index connections
         if (this.index_sockets[socket.id] != null) {
-            //console.log('index socket disconnect:', socket.id)
             delete this.index_sockets[socket.id]
             return
         }
@@ -67,16 +69,16 @@ class GameManager {
         // check if in game connections
         for (let g of Object.keys(this.games)) {
             if (this.games[g].observer_sockets[socket.id] != null) {
-                //console.log('game socket disconnect:', socket.id, this.games[g].observer_sockets[socket.id]['username'])
                 // send message
                 this.games[g].serverMessage(this.games[g].observer_sockets[socket.id]['username'].concat(" disconnected"))
+
                 delete this.games[g].observer_sockets[socket.id]
                 return
             }
             if (this.games[g].player_sockets[socket.id] != null) {
-                //console.log('game socket disconnect:', socket.id, this.games[g].player_sockets[socket.id]['username'])
                 // send message
                 this.games[g].serverMessage(this.games[g].player_sockets[socket.id]['username'].concat(" disconnected"))
+
                 delete this.games[g].player_sockets[socket.id]
                 return
             }
