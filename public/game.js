@@ -1,7 +1,6 @@
 const socket = io('powergrid.life') // powergrid.life
 
-console.log('updated this')
-
+// get document elements
 const messageContainer = document.getElementById('message-container')
 const messageForm = document.getElementById('send-container')
 const messageInput = document.getElementById('message-input')
@@ -12,9 +11,8 @@ const ctx = canvas.getContext('2d');
 
 // send connection message
 socket.emit('game_connection', gameName, username) // gamename, username
-console.log('connected using game conneciton')
 
-console.log(gameName, username)
+console.log('connected to game:', gameName, 'as', username)
 
 // new game state
 socket.on('game_state', game_state => {    
@@ -97,8 +95,28 @@ function render(game_state) {
 
         // draw the current action
         drawAction(width - actionWidth, 0, actionWidth, topBarHeight, game_state)
+    } else if (!game_state['active'] && !game_state['finished']) { // before the game
+        const sideGap = 15
+        
+        const vGap = 20
+        
+        // setup text
+        ctx.font = "16px Georgia"
+        ctx.fillStyle = 'black'
+        
+        // draw the players in the game
+        let numPlayers = Object.keys(game_state['players']).length
+        ctx.fillText(numPlayers.toString().concat(" Players Ready"), sideGap, sideGap + vGap)
+        let playerIndex = 2
+        Object.keys(game_state['players']).forEach(username => {
+            ctx.fillText(username, sideGap, sideGap + playerIndex * vGap)
+            
+            playerIndex++
+        })
+
+        // draw the regions
+        ctx.fillText('Regions: '.concat(JSON.stringify(game_state['regions']).slice(1, -1)), sideGap, sideGap + (numPlayers + 3) * vGap)
     }
-    
 }
 
 function drawMap(x_offset, y_offset, width, height, game_state) {
@@ -153,7 +171,7 @@ function drawMap(x_offset, y_offset, width, height, game_state) {
             ctx.fillStyle = color
             // draw the line
             let w = ctx.measureText(line).width
-            ctx.fillText(line, cityX - w / 2, cityY - vGap * (numLines / 2.0 - 1) + vGap * lines)  // TODO THIS MAY BE A BIT WRONG
+            ctx.fillText(line, cityX - w / 2, cityY - vGap * (numLines / 2.0 - 1) + vGap * lines)
 
             lines++
         })
@@ -238,12 +256,21 @@ function drawInfo(x_offset, y_offset, width, height, game_state) {
         })
         plantStr = plantStr.slice(0, -3)
 
+        let resStr = ""
+        let playerRes = game_state['players'][username]['resources']
+        Object.keys(playerRes).forEach(res => {
+            if (playerRes[res] > 0) {
+                resStr = resStr.concat(', ', res, ' - ', playerRes[res])
+            }
+        })
+        resStr = resStr.slice(2)
+
         // username, cities, money, plants, resources
         ctx.fillText(playerIndex.toString().concat(" - ", username), x_offset + 5, y_offset + playerIndex * yGap)
         ctx.fillText(numCities.toString().concat(' cities'), x_offset + 110, y_offset + playerIndex * yGap)
         ctx.fillText("$".concat(money.toString()), x_offset + 165, y_offset + playerIndex * yGap)
         ctx.fillText(plantStr, x_offset + 200, y_offset + playerIndex * yGap)
-        ctx.fillText(JSON.stringify(game_state['players'][username]['resources']).slice(1, -1), x_offset + 450, y_offset + playerIndex * yGap)
+        ctx.fillText(resStr, x_offset + 450, y_offset + playerIndex * yGap)
 
         playerIndex++
     })
