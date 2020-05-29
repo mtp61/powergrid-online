@@ -101,7 +101,8 @@ io.on('connection', socket => {
   socket.on('disconnect', onDisconnect)
 })
 
-function onMessage(gameName, username, message) {
+function onMessage(data) {
+  let gameName = data['gameName'], username = data['username'], message = data['message']
   gameManager.games[gameName].message_queue.push({'username': username, 'message': message})
 }
 
@@ -109,7 +110,8 @@ function onConnectIndex() {
   gameManager.indexConnection(this)
 }
 
-function onConnectGame(gameName, username) {
+function onConnectGame(data) {
+  let gameName = data['gameName'], username = data['username']
   gameManager.gameConnection(this, gameName, username)
 }
 
@@ -161,7 +163,7 @@ function checkNotAuthenticated(req, res, next) {
 
 // Setup the game
 const GameManager = require('./gameManager')
-const gameManager = new GameManager(16); // arg is tickrate
+const gameManager = new GameManager(4); // arg is tickrate
 
 function getGames() {
   return gameManager.getGameInfo()

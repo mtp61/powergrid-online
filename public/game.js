@@ -10,7 +10,7 @@ const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
 // send connection message
-socket.emit('game_connection', gameName, username) // gamename, username
+socket.emit('game_connection', {'gameName': gameName, 'username': username}) // gamename, username
 
 console.log('connected to game:', gameName, 'as', username)
 
@@ -34,7 +34,9 @@ messageForm.addEventListener('submit', e => {
     e.preventDefault()
     const message = messageInput.value
     if (message != "") {
-        socket.emit('chat-message', gameName, username, message)
+        socket.emit('chat-message', {"gameName": gameName, 
+                                    "username": username, 
+                                    "message": message})
     }
     messageInput.value = ''
 })
