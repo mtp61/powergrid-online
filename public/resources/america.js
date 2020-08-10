@@ -79,7 +79,7 @@ const map = {
         "y": 2,
         "region": 3, 
         "connections": {15: 6, 17: 5, 18: 12, 29: 15}},
-    17: {"name": "Boof HQ",
+    17: {"name": "Minneapolis",
         "x": 12,
         "y": 4,
         "region": 3, 
